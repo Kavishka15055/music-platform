@@ -100,6 +100,18 @@ let GalleryService = class GalleryService {
             tags: Array.from(uniqueTags)
         };
     }
+    async create(galleryData) {
+        const item = this.galleryRepository.create(galleryData);
+        return this.galleryRepository.save(item);
+    }
+    async update(id, galleryData) {
+        const { id: _, ...updateData } = galleryData;
+        await this.galleryRepository.update(id, updateData);
+        return this.findOne(id);
+    }
+    async remove(id) {
+        await this.galleryRepository.delete(id);
+    }
     async seedData() {
         const initialData = [
             {

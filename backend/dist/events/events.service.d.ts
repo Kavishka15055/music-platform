@@ -15,5 +15,9 @@ export declare class EventsService implements OnModuleInit {
         success: boolean;
         message: string;
     }>;
+    findOne(id: string): Promise<Event | null>;
+    create(eventData: Partial<Event>): Promise<Event>;
+    update(id: string, eventData: Partial<Event>): Promise<Event | null>;
+    remove(id: string): Promise<void>;
     private seedEvents;
 }

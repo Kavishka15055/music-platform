@@ -107,6 +107,21 @@ export class GalleryService implements OnModuleInit {
     };
   }
 
+  async create(galleryData: Partial<Gallery>): Promise<Gallery> {
+    const item = this.galleryRepository.create(galleryData);
+    return this.galleryRepository.save(item);
+  }
+
+  async update(id: string, galleryData: Partial<Gallery>): Promise<Gallery | null> {
+    const { id: _, ...updateData } = galleryData as any;
+    await this.galleryRepository.update(id, updateData);
+    return this.findOne(id);
+  }
+
+  async remove(id: string): Promise<void> {
+    await this.galleryRepository.delete(id);
+  }
+
   private async seedData() {
     const initialData = [
       {

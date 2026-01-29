@@ -6,7 +6,11 @@ const config_1 = require("@nestjs/config");
 async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
     const configService = app.get(config_1.ConfigService);
-    app.enableCors();
+    app.enableCors({
+        origin: true,
+        methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+        credentials: true,
+    });
     app.setGlobalPrefix('api');
     await app.listen(configService.get('PORT') ?? 3002);
 }

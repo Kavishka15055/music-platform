@@ -72,6 +72,21 @@ let EventsService = class EventsService {
         await this.eventsRepository.save(event);
         return { success: true, message: 'Registered successfully' };
     }
+    async findOne(id) {
+        return this.eventsRepository.findOneBy({ id });
+    }
+    async create(eventData) {
+        const event = this.eventsRepository.create(eventData);
+        return this.eventsRepository.save(event);
+    }
+    async update(id, eventData) {
+        const { id: _, ...updateData } = eventData;
+        await this.eventsRepository.update(id, updateData);
+        return this.findOne(id);
+    }
+    async remove(id) {
+        await this.eventsRepository.delete(id);
+    }
     async seedEvents() {
         const events = [
             {

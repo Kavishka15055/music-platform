@@ -20,5 +20,8 @@ export declare class GalleryService implements OnModuleInit {
         categories: {};
         tags: string[];
     }>;
+    create(galleryData: Partial<Gallery>): Promise<Gallery>;
+    update(id: string, galleryData: Partial<Gallery>): Promise<Gallery | null>;
+    remove(id: string): Promise<void>;
     private seedData;
 }

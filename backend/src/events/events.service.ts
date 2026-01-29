@@ -68,6 +68,25 @@ export class EventsService implements OnModuleInit {
     return { success: true, message: 'Registered successfully' };
   }
 
+  async findOne(id: string): Promise<Event | null> {
+    return this.eventsRepository.findOneBy({ id });
+  }
+
+  async create(eventData: Partial<Event>): Promise<Event> {
+    const event = this.eventsRepository.create(eventData);
+    return this.eventsRepository.save(event);
+  }
+
+  async update(id: string, eventData: Partial<Event>): Promise<Event | null> {
+    const { id: _, ...updateData } = eventData as any;
+    await this.eventsRepository.update(id, updateData);
+    return this.findOne(id);
+  }
+
+  async remove(id: string): Promise<void> {
+    await this.eventsRepository.delete(id);
+  }
+
   private async seedEvents() {
     const events = [
       {

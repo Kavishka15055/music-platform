@@ -41,6 +41,15 @@ let GalleryController = class GalleryController {
     getById(id) {
         return this.galleryService.findOne(id);
     }
+    create(galleryData) {
+        return this.galleryService.create(galleryData);
+    }
+    update(id, galleryData) {
+        return this.galleryService.update(id, galleryData);
+    }
+    remove(id) {
+        return this.galleryService.remove(id);
+    }
 };
 exports.GalleryController = GalleryController;
 __decorate([
@@ -91,6 +100,28 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], GalleryController.prototype, "getById", null);
+__decorate([
+    (0, common_1.Post)(),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], GalleryController.prototype, "create", null);
+__decorate([
+    (0, common_1.Patch)(':id'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], GalleryController.prototype, "update", null);
+__decorate([
+    (0, common_1.Delete)(':id'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], GalleryController.prototype, "remove", null);
 exports.GalleryController = GalleryController = __decorate([
     (0, common_1.Controller)('v1/gallery'),
     __metadata("design:paramtypes", [gallery_service_1.GalleryService])
