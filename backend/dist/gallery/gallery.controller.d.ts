@@ -17,7 +17,7 @@ export declare class GalleryController {
     getByCategory(category: string): Promise<Gallery[]>;
     getByTag(tag: string): Promise<Gallery[]>;
     search(query: string): Promise<Gallery[]>;
-    getById(id: string): Promise<Gallery | null>;
+    getById(id: string): Promise<Gallery>;
     create(galleryData: any): Promise<Gallery>;
     update(id: string, galleryData: any): Promise<Gallery | null>;
     remove(id: string): Promise<void>;

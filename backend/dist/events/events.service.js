@@ -23,69 +23,132 @@ let EventsService = class EventsService {
         this.eventsRepository = eventsRepository;
     }
     async onModuleInit() {
-        const count = await this.eventsRepository.count();
-        if (count === 0) {
-            await this.seedEvents();
-        }
-        else {
-            const events = await this.eventsRepository.find();
-            const now = new Date();
-            let updated = false;
-            for (const event of events) {
-                if (new Date(event.date) < now) {
-                    const newDate = new Date(event.date);
-                    newDate.setFullYear(2026);
-                    event.date = newDate;
-                    await this.eventsRepository.save(event);
-                    updated = true;
-                }
+        try {
+            const count = await this.eventsRepository.count();
+            if (count === 0) {
+                await this.seedEvents();
             }
-            if (updated)
-                console.log('Updated past events to 2026');
+            else {
+                const events = await this.eventsRepository.find();
+                const now = new Date();
+                let updated = false;
+                for (const event of events) {
+                    if (new Date(event.date) < now) {
+                        const newDate = new Date(event.date);
+                        newDate.setFullYear(2026);
+                        event.date = newDate;
+                        await this.eventsRepository.save(event);
+                        updated = true;
+                    }
+                }
+                if (updated)
+                    console.log('Updated past events to 2026');
+            }
+        }
+        catch (error) {
+            console.error('Error during events module initialization:', error);
         }
     }
     async findAll() {
-        return this.eventsRepository.find({ order: { date: 'ASC' } });
+        try {
+            return await this.eventsRepository.find({ order: { date: 'ASC' } });
+        }
+        catch (error) {
+            throw new common_1.InternalServerErrorException('Failed to retrieve events');
+        }
     }
     async findUpcoming() {
-        return this.eventsRepository.find({
-            where: { date: (0, typeorm_2.MoreThan)(new Date()) },
-            order: { date: 'ASC' },
-        });
+        try {
+            return await this.eventsRepository.find({
+                where: { date: (0, typeorm_2.MoreThan)(new Date()) },
+                order: { date: 'ASC' },
+            });
+        }
+        catch (error) {
+            throw new common_1.InternalServerErrorException('Failed to retrieve upcoming events');
+        }
     }
     async getStats() {
-        const totalEvents = await this.eventsRepository.count();
-        const upcomingEvents = await this.eventsRepository.count({
-            where: { date: (0, typeorm_2.MoreThan)(new Date()) },
-        });
-        return { totalEvents, upcomingEvents };
+        try {
+            const totalEvents = await this.eventsRepository.count();
+            const upcomingEvents = await this.eventsRepository.count({
+                where: { date: (0, typeorm_2.MoreThan)(new Date()) },
+            });
+            return { totalEvents, upcomingEvents };
+        }
+        catch (error) {
+            throw new common_1.InternalServerErrorException('Failed to retrieve event statistics');
+        }
     }
     async register(id) {
-        const event = await this.eventsRepository.findOneBy({ id });
-        if (!event) {
-            return { success: false, message: 'Event not found' };
+        try {
+            const event = await this.findOne(id);
+            if (event.currentAttendees >= event.maxAttendees) {
+                throw new common_1.BadRequestException('Event is full');
+            }
+            event.currentAttendees += 1;
+            await this.eventsRepository.save(event);
+            return { success: true, message: 'Registered successfully' };
         }
-        if (event.currentAttendees >= event.maxAttendees) {
-            return { success: false, message: 'Event is full' };
+        catch (error) {
+            if (error instanceof common_1.NotFoundException || error instanceof common_1.BadRequestException)
+                throw error;
+            throw new common_1.InternalServerErrorException('Registration failed');
         }
-        event.currentAttendees += 1;
-        await this.eventsRepository.save(event);
-        return { success: true, message: 'Registered successfully' };
     }
     async findOne(id) {
-        return this.eventsRepository.findOneBy({ id });
+        try {
+            const event = await this.eventsRepository.findOneBy({ id });
+            if (!event) {
+                throw new common_1.NotFoundException(`Event with ID "${id}" not found`);
+            }
+            return event;
+        }
+        catch (error) {
+            if (error instanceof common_1.NotFoundException)
+                throw error;
+            throw new common_1.InternalServerErrorException('Failed to retrieve event');
+        }
     }
     async create(eventData) {
-        const event = this.eventsRepository.create(eventData);
-        return this.eventsRepository.save(event);
+        try {
+            if (!eventData.title) {
+                throw new common_1.BadRequestException('Title is required for an event');
+            }
+            const event = this.eventsRepository.create(eventData);
+            return await this.eventsRepository.save(event);
+        }
+        catch (error) {
+            if (error instanceof common_1.BadRequestException)
+                throw error;
+            throw new common_1.InternalServerErrorException('Failed to create event');
+        }
     }
     async update(id, eventData) {
-        const { id: _, ...updateData } = eventData;
-        await this.eventsRepository.update(id, updateData);
-        return this.findOne(id);
+        try {
+            await this.findOne(id);
+            const { id: _, ...updateData } = eventData;
+            await this.eventsRepository.update(id, updateData);
+            return await this.findOne(id);
+        }
+        catch (error) {
+            if (error instanceof common_1.NotFoundException)
+                throw error;
+            throw new common_1.InternalServerErrorException(`Failed to update event with ID "${id}"`);
+        }
     }
     async remove(id) {
-        await this.eventsRepository.delete(id);
+        try {
+            const result = await this.eventsRepository.delete(id);
+            if (result.affected === 0) {
+                throw new common_1.NotFoundException(`Event with ID "${id}" not found`);
+            }
+        }
+        catch (error) {
+            if (error instanceof common_1.NotFoundException)
+                throw error;
+            throw new common_1.InternalServerErrorException(`Failed to delete event with ID "${id}"`);
+        }
     }
     async seedEvents() {
         const events = [

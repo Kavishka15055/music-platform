@@ -10,7 +10,7 @@ export declare class GalleryService implements OnModuleInit {
         total: number;
     }>;
     findFeatured(): Promise<Gallery[]>;
-    findOne(id: string): Promise<Gallery | null>;
+    findOne(id: string): Promise<Gallery>;
     findByCategory(category: string): Promise<Gallery[]>;
     findByTag(tag: string): Promise<Gallery[]>;
     search(query: string): Promise<Gallery[]>;

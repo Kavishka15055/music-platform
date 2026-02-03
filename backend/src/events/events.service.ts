@@ -5,7 +5,7 @@
  * Description:
  *   Service providing business logic for event management and data seeding.
  */
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, NotFoundException, InternalServerErrorException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
 import { Event } from './event.entity';
@@ -23,26 +23,30 @@ export class EventsService implements OnModuleInit {
    * Also ensures past events are shifted to the future for demonstration.
    */
   async onModuleInit() {
-    // Seed data if empty
-    const count = await this.eventsRepository.count();
-    if (count === 0) {
-      await this.seedEvents();
-    } else {
-       // Temporary fix: Update dates to future if they are in the past (for demo purposes)
-       const events = await this.eventsRepository.find();
-       const now = new Date();
-       let updated = false;
-       for (const event of events) {
-         if (new Date(event.date) < now) {
-            // Move to 2026 keeping same month/day
-            const newDate = new Date(event.date);
-            newDate.setFullYear(2026);
-            event.date = newDate;
-            await this.eventsRepository.save(event);
-            updated = true;
+    try {
+      // Seed data if empty
+      const count = await this.eventsRepository.count();
+      if (count === 0) {
+        await this.seedEvents();
+      } else {
+         // Temporary fix: Update dates to future if they are in the past (for demo purposes)
+         const events = await this.eventsRepository.find();
+         const now = new Date();
+         let updated = false;
+         for (const event of events) {
+           if (new Date(event.date) < now) {
+              // Move to 2026 keeping same month/day
+              const newDate = new Date(event.date);
+              newDate.setFullYear(2026);
+              event.date = newDate;
+              await this.eventsRepository.save(event);
+              updated = true;
+           }
          }
-       }
-       if (updated) console.log('Updated past events to 2026');
+         if (updated) console.log('Updated past events to 2026');
+      }
+    } catch (error) {
+      console.error('Error during events module initialization:', error);
     }
   }
 
@@ -51,7 +55,11 @@ export class EventsService implements OnModuleInit {
    * @returns A promise that resolves to an array of all events.
    */
   async findAll(): Promise<Event[]> {
-    return this.eventsRepository.find({ order: { date: 'ASC' } });
+    try {
+      return await this.eventsRepository.find({ order: { date: 'ASC' } });
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to retrieve events');
+    }
   }
 
   /**
@@ -59,10 +67,14 @@ export class EventsService implements OnModuleInit {
    * @returns A promise that resolves to an array of upcoming events.
    */
   async findUpcoming(): Promise<Event[]> {
-    return this.eventsRepository.find({
-      where: { date: MoreThan(new Date()) },
-      order: { date: 'ASC' },
-    });
+    try {
+      return await this.eventsRepository.find({
+        where: { date: MoreThan(new Date()) },
+        order: { date: 'ASC' },
+      });
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to retrieve upcoming events');
+    }
   }
 
   /**
@@ -70,40 +82,58 @@ export class EventsService implements OnModuleInit {
    * @returns A promise that resolves to an object with total and upcoming event counts.
    */
   async getStats(): Promise<{ totalEvents: number; upcomingEvents: number }> {
-    const totalEvents = await this.eventsRepository.count();
-    const upcomingEvents = await this.eventsRepository.count({
-      where: { date: MoreThan(new Date()) },
-    });
-    return { totalEvents, upcomingEvents };
+    try {
+      const totalEvents = await this.eventsRepository.count();
+      const upcomingEvents = await this.eventsRepository.count({
+        where: { date: MoreThan(new Date()) },
+      });
+      return { totalEvents, upcomingEvents };
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to retrieve event statistics');
+    }
   }
 
   /**
    * Registers a user for an event by incrementing the attendee count.
    * @param id - The ID of the event to register for.
    * @returns A promise that resolves to a success status and message.
+   * @throws NotFoundException if the event is not found.
+   * @throws BadRequestException if the event is full.
    */
   async register(id: string): Promise<{ success: boolean; message: string }> {
-    const event = await this.eventsRepository.findOneBy({ id });
-    if (!event) {
-      return { success: false, message: 'Event not found' };
-    }
+    try {
+      const event = await this.findOne(id);
+      
+      if (event.currentAttendees >= event.maxAttendees) {
+        throw new BadRequestException('Event is full');
+      }
 
-    if (event.currentAttendees >= event.maxAttendees) {
-      return { success: false, message: 'Event is full' };
+      event.currentAttendees += 1;
+      await this.eventsRepository.save(event);
+      return { success: true, message: 'Registered successfully' };
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
+      throw new InternalServerErrorException('Registration failed');
     }
-
-    event.currentAttendees += 1;
-    await this.eventsRepository.save(event);
-    return { success: true, message: 'Registered successfully' };
   }
 
   /**
    * Finds a single event by its ID.
    * @param id - The ID of the event.
-   * @returns A promise that resolves to the event or null if not found.
+   * @returns A promise that resolves to the event.
+   * @throws NotFoundException if the event is not found.
    */
-  async findOne(id: string): Promise<Event | null> {
-    return this.eventsRepository.findOneBy({ id });
+  async findOne(id: string): Promise<Event> {
+    try {
+      const event = await this.eventsRepository.findOneBy({ id });
+      if (!event) {
+        throw new NotFoundException(`Event with ID "${id}" not found`);
+      }
+      return event;
+    } catch (error) {
+      if (error instanceof NotFoundException) throw error;
+      throw new InternalServerErrorException('Failed to retrieve event');
+    }
   }
 
   /**
@@ -112,20 +142,36 @@ export class EventsService implements OnModuleInit {
    * @returns A promise that resolves to the saved event.
    */
   async create(eventData: Partial<Event>): Promise<Event> {
-    const event = this.eventsRepository.create(eventData);
-    return this.eventsRepository.save(event);
+    try {
+      if (!eventData.title) {
+        throw new BadRequestException('Title is required for an event');
+      }
+      const event = this.eventsRepository.create(eventData);
+      return await this.eventsRepository.save(event);
+    } catch (error) {
+      if (error instanceof BadRequestException) throw error;
+      throw new InternalServerErrorException('Failed to create event');
+    }
   }
 
   /**
    * Updates an existing event by ID.
    * @param id - The ID of the event to update.
    * @param eventData - The updated data.
-   * @returns A promise that resolves to the updated event or null if not found.
+   * @returns A promise that resolves to the updated event.
    */
   async update(id: string, eventData: Partial<Event>): Promise<Event | null> {
-    const { id: _, ...updateData } = eventData as any;
-    await this.eventsRepository.update(id, updateData);
-    return this.findOne(id);
+    try {
+      // Check if event exists
+      await this.findOne(id);
+      
+      const { id: _, ...updateData } = eventData as any;
+      await this.eventsRepository.update(id, updateData);
+      return await this.findOne(id);
+    } catch (error) {
+      if (error instanceof NotFoundException) throw error;
+      throw new InternalServerErrorException(`Failed to update event with ID "${id}"`);
+    }
   }
 
   /**
@@ -134,8 +180,17 @@ export class EventsService implements OnModuleInit {
    * @returns A promise that resolves when the delete operation is complete.
    */
   async remove(id: string): Promise<void> {
-    await this.eventsRepository.delete(id);
+    try {
+      const result = await this.eventsRepository.delete(id);
+      if (result.affected === 0) {
+        throw new NotFoundException(`Event with ID "${id}" not found`);
+      }
+    } catch (error) {
+      if (error instanceof NotFoundException) throw error;
+      throw new InternalServerErrorException(`Failed to delete event with ID "${id}"`);
+    }
   }
+
 
   /**
    * Internal method to seed the database with initial event data.

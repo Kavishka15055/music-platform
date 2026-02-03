@@ -8,7 +8,7 @@ export declare class EventsController {
         totalEvents: number;
         upcomingEvents: number;
     }>;
-    findOne(id: string): Promise<import("./event.entity").Event | null>;
+    findOne(id: string): Promise<import("./event.entity").Event>;
     create(eventData: any): Promise<import("./event.entity").Event>;
     update(id: string, eventData: any): Promise<import("./event.entity").Event | null>;
     remove(id: string): Promise<void>;

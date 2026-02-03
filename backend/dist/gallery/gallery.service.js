@@ -23,94 +23,168 @@ let GalleryService = class GalleryService {
         this.galleryRepository = galleryRepository;
     }
     async onModuleInit() {
-        const count = await this.galleryRepository.count();
-        if (count === 0) {
-            this.seedData();
+        try {
+            const count = await this.galleryRepository.count();
+            if (count === 0) {
+                await this.seedData();
+            }
+        }
+        catch (error) {
+            console.error('Error during gallery module initialization:', error);
         }
     }
     async findAll(page = 1, limit = 20) {
-        const pageNum = Number(page) || 1;
-        const limitNum = Number(limit) || 20;
-        const [items, total] = await this.galleryRepository.findAndCount({
-            take: limitNum,
-            skip: (pageNum - 1) * limitNum,
-            order: { createdAt: 'DESC' },
-        });
-        return { items, total };
+        try {
+            const pageNum = Number(page) || 1;
+            const limitNum = Number(limit) || 20;
+            const [items, total] = await this.galleryRepository.findAndCount({
+                take: limitNum,
+                skip: (pageNum - 1) * limitNum,
+                order: { createdAt: 'DESC' },
+            });
+            return { items, total };
+        }
+        catch (error) {
+            throw new common_1.InternalServerErrorException('Failed to retrieve gallery items');
+        }
     }
-    findFeatured() {
-        return this.galleryRepository.find({
-            where: { featured: true },
-            order: { createdAt: 'DESC' },
-        });
+    async findFeatured() {
+        try {
+            return await this.galleryRepository.find({
+                where: { featured: true },
+                order: { createdAt: 'DESC' },
+            });
+        }
+        catch (error) {
+            throw new common_1.InternalServerErrorException('Failed to retrieve featured gallery items');
+        }
     }
-    findOne(id) {
-        return this.galleryRepository.findOneBy({ id });
+    async findOne(id) {
+        try {
+            const item = await this.galleryRepository.findOneBy({ id });
+            if (!item) {
+                throw new common_1.NotFoundException(`Gallery item with ID "${id}" not found`);
+            }
+            return item;
+        }
+        catch (error) {
+            if (error instanceof common_1.NotFoundException)
+                throw error;
+            throw new common_1.InternalServerErrorException('Failed to retrieve gallery item');
+        }
     }
-    findByCategory(category) {
-        return this.galleryRepository.find({
-            where: { category },
-            order: { createdAt: 'DESC' },
-        });
+    async findByCategory(category) {
+        try {
+            return await this.galleryRepository.find({
+                where: { category },
+                order: { createdAt: 'DESC' },
+            });
+        }
+        catch (error) {
+            throw new common_1.InternalServerErrorException(`Failed to retrieve items for category "${category}"`);
+        }
     }
-    findByTag(tag) {
-        return this.galleryRepository.find({
-            where: {
-                tags: (0, typeorm_2.Like)(`%${tag}%`),
-            },
-            order: { createdAt: 'DESC' },
-        });
+    async findByTag(tag) {
+        try {
+            return await this.galleryRepository.find({
+                where: {
+                    tags: (0, typeorm_2.Like)(`%${tag}%`),
+                },
+                order: { createdAt: 'DESC' },
+            });
+        }
+        catch (error) {
+            throw new common_1.InternalServerErrorException(`Failed to retrieve items for tag "${tag}"`);
+        }
     }
-    search(query) {
-        return this.galleryRepository.find({
-            where: [
-                { title: (0, typeorm_2.Like)(`%${query}%`) },
-                { description: (0, typeorm_2.Like)(`%${query}%`) },
-            ],
-            order: { createdAt: 'DESC' },
-        });
+    async search(query) {
+        try {
+            return await this.galleryRepository.find({
+                where: [
+                    { title: (0, typeorm_2.Like)(`%${query}%`) },
+                    { description: (0, typeorm_2.Like)(`%${query}%`) },
+                ],
+                order: { createdAt: 'DESC' },
+            });
+        }
+        catch (error) {
+            throw new common_1.InternalServerErrorException(`Search failed for query "${query}"`);
+        }
     }
     async getStats() {
-        const total = await this.galleryRepository.count();
-        const featured = await this.galleryRepository.count({ where: { featured: true } });
-        const categoriesRaw = await this.galleryRepository
-            .createQueryBuilder('gallery')
-            .select('gallery.category', 'category')
-            .addSelect('COUNT(*)', 'count')
-            .groupBy('gallery.category')
-            .getRawMany();
-        const categories = {};
-        categoriesRaw.forEach(c => {
-            categories[c.category] = parseInt(c.count);
-        });
-        const allTags = await this.galleryRepository
-            .createQueryBuilder('gallery')
-            .select('gallery.tags')
-            .getMany();
-        const uniqueTags = new Set();
-        allTags.forEach(item => {
-            if (Array.isArray(item.tags)) {
-                item.tags.forEach(tag => uniqueTags.add(tag));
-            }
-        });
-        return {
-            total,
-            featured,
-            categories,
-            tags: Array.from(uniqueTags)
-        };
+        try {
+            const total = await this.galleryRepository.count();
+            const featured = await this.galleryRepository.count({ where: { featured: true } });
+            const categoriesRaw = await this.galleryRepository
+                .createQueryBuilder('gallery')
+                .select('gallery.category', 'category')
+                .addSelect('COUNT(*)', 'count')
+                .groupBy('gallery.category')
+                .getRawMany();
+            const categories = {};
+            categoriesRaw.forEach(c => {
+                categories[c.category] = parseInt(c.count);
+            });
+            const allTags = await this.galleryRepository
+                .createQueryBuilder('gallery')
+                .select('gallery.tags')
+                .getMany();
+            const uniqueTags = new Set();
+            allTags.forEach(item => {
+                if (Array.isArray(item.tags)) {
+                    item.tags.forEach(tag => uniqueTags.add(tag));
+                }
+            });
+            return {
+                total,
+                featured,
+                categories,
+                tags: Array.from(uniqueTags)
+            };
+        }
+        catch (error) {
+            throw new common_1.InternalServerErrorException('Failed to retrieve gallery statistics');
+        }
     }
     async create(galleryData) {
-        const item = this.galleryRepository.create(galleryData);
-        return this.galleryRepository.save(item);
+        try {
+            if (!galleryData.title) {
+                throw new common_1.BadRequestException('Title is required for a gallery item');
+            }
+            const item = this.galleryRepository.create(galleryData);
+            return await this.galleryRepository.save(item);
+        }
+        catch (error) {
+            if (error instanceof common_1.BadRequestException)
+                throw error;
+            throw new common_1.InternalServerErrorException('Failed to create gallery item');
+        }
     }
     async update(id, galleryData) {
-        const { id: _, ...updateData } = galleryData;
-        await this.galleryRepository.update(id, updateData);
-        return this.findOne(id);
+        try {
+            await this.findOne(id);
+            const { id: _, ...updateData } = galleryData;
+            await this.galleryRepository.update(id, updateData);
+            return await this.findOne(id);
+        }
+        catch (error) {
+            if (error instanceof common_1.NotFoundException)
+                throw error;
+            throw new common_1.InternalServerErrorException(`Failed to update gallery item with ID "${id}"`);
+        }
     }
     async remove(id) {
-        await this.galleryRepository.delete(id);
+        try {
+            const result = await this.galleryRepository.delete(id);
+            if (result.affected === 0) {
+                throw new common_1.NotFoundException(`Gallery item with ID "${id}" not found`);
+            }
+        }
+        catch (error) {
+            if (error instanceof common_1.NotFoundException)
+                throw error;
+            throw new common_1.InternalServerErrorException(`Failed to delete gallery item with ID "${id}"`);
+        }
     }
     async seedData() {
         const initialData = [
