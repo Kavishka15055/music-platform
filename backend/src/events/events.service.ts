@@ -17,6 +17,11 @@ export class EventsService implements OnModuleInit {
     private eventsRepository: Repository<Event>,
   ) {}
 
+  /**
+   * Lifecycle hook that runs when the module is initialized.
+   * Seeds initial events data if the repository is empty.
+   * Also ensures past events are shifted to the future for demonstration.
+   */
   async onModuleInit() {
     // Seed data if empty
     const count = await this.eventsRepository.count();
@@ -41,10 +46,18 @@ export class EventsService implements OnModuleInit {
     }
   }
 
+  /**
+   * Retrieves all events from the database.
+   * @returns A promise that resolves to an array of all events.
+   */
   async findAll(): Promise<Event[]> {
     return this.eventsRepository.find({ order: { date: 'ASC' } });
   }
 
+  /**
+   * Finds events scheduled after the current date and time.
+   * @returns A promise that resolves to an array of upcoming events.
+   */
   async findUpcoming(): Promise<Event[]> {
     return this.eventsRepository.find({
       where: { date: MoreThan(new Date()) },
@@ -52,6 +65,10 @@ export class EventsService implements OnModuleInit {
     });
   }
 
+  /**
+   * Calculates statistics for events.
+   * @returns A promise that resolves to an object with total and upcoming event counts.
+   */
   async getStats(): Promise<{ totalEvents: number; upcomingEvents: number }> {
     const totalEvents = await this.eventsRepository.count();
     const upcomingEvents = await this.eventsRepository.count({
@@ -60,6 +77,11 @@ export class EventsService implements OnModuleInit {
     return { totalEvents, upcomingEvents };
   }
 
+  /**
+   * Registers a user for an event by incrementing the attendee count.
+   * @param id - The ID of the event to register for.
+   * @returns A promise that resolves to a success status and message.
+   */
   async register(id: string): Promise<{ success: boolean; message: string }> {
     const event = await this.eventsRepository.findOneBy({ id });
     if (!event) {
@@ -75,26 +97,52 @@ export class EventsService implements OnModuleInit {
     return { success: true, message: 'Registered successfully' };
   }
 
+  /**
+   * Finds a single event by its ID.
+   * @param id - The ID of the event.
+   * @returns A promise that resolves to the event or null if not found.
+   */
   async findOne(id: string): Promise<Event | null> {
     return this.eventsRepository.findOneBy({ id });
   }
 
+  /**
+   * Creates and saves a new event.
+   * @param eventData - Partial event data for the new event.
+   * @returns A promise that resolves to the saved event.
+   */
   async create(eventData: Partial<Event>): Promise<Event> {
     const event = this.eventsRepository.create(eventData);
     return this.eventsRepository.save(event);
   }
 
+  /**
+   * Updates an existing event by ID.
+   * @param id - The ID of the event to update.
+   * @param eventData - The updated data.
+   * @returns A promise that resolves to the updated event or null if not found.
+   */
   async update(id: string, eventData: Partial<Event>): Promise<Event | null> {
     const { id: _, ...updateData } = eventData as any;
     await this.eventsRepository.update(id, updateData);
     return this.findOne(id);
   }
 
+  /**
+   * Deletes an event by ID.
+   * @param id - The ID of the event to delete.
+   * @returns A promise that resolves when the delete operation is complete.
+   */
   async remove(id: string): Promise<void> {
     await this.eventsRepository.delete(id);
   }
 
+  /**
+   * Internal method to seed the database with initial event data.
+   * @private
+   */
   private async seedEvents() {
+
     const events = [
       {
         title: 'Advanced Jazz Piano Masterclass',

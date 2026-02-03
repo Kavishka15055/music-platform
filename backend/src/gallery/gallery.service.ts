@@ -18,6 +18,10 @@ export class GalleryService implements OnModuleInit {
     private galleryRepository: Repository<Gallery>,
   ) {}
 
+  /**
+   * Lifecycle hook that runs when the module is initialized.
+   * Seeds initial gallery data if the repository is empty.
+   */
   async onModuleInit() {
     // Seed data if empty
     const count = await this.galleryRepository.count();
@@ -26,6 +30,12 @@ export class GalleryService implements OnModuleInit {
     }
   }
 
+  /**
+   * Retrieves all gallery items with pagination.
+   * @param page - The page number (defaults to 1).
+   * @param limit - The number of items per page (defaults to 20).
+   * @returns An object containing the list of items and total count.
+   */
   async findAll(page: number = 1, limit: number = 20) {
     // Ensure page and limit are numbers, even if passed as strings
     const pageNum = Number(page) || 1;
@@ -39,6 +49,10 @@ export class GalleryService implements OnModuleInit {
     return { items, total };
   }
 
+  /**
+   * Finds all gallery items marked as featured.
+   * @returns A list of featured gallery items.
+   */
   findFeatured() {
     return this.galleryRepository.find({
       where: { featured: true },
@@ -46,10 +60,20 @@ export class GalleryService implements OnModuleInit {
     });
   }
 
+  /**
+   * Finds a single gallery item by its ID.
+   * @param id - The ID of the item.
+   * @returns The gallery item or null if not found.
+   */
   findOne(id: string) {
     return this.galleryRepository.findOneBy({ id });
   }
 
+  /**
+   * Finds gallery items that belong to a specific category.
+   * @param category - The category name.
+   * @returns A list of gallery items in that category.
+   */
   findByCategory(category: string) {
     return this.galleryRepository.find({
       where: { category },
@@ -57,6 +81,11 @@ export class GalleryService implements OnModuleInit {
     });
   }
 
+  /**
+   * Finds gallery items that contain a specific tag.
+   * @param tag - The tag to search for.
+   * @returns A list of items matching the tag.
+   */
   findByTag(tag: string) {
     return this.galleryRepository.find({
       where: {
@@ -66,6 +95,11 @@ export class GalleryService implements OnModuleInit {
     });
   }
 
+  /**
+   * Searches for gallery items by title or description.
+   * @param query - The search string.
+   * @returns A list of items matching the query.
+   */
   search(query: string) {
     return this.galleryRepository.find({
       where: [
@@ -76,6 +110,10 @@ export class GalleryService implements OnModuleInit {
     });
   }
 
+  /**
+   * Gets statistics about the gallery, including counts per category and unique tags.
+   * @returns An object with gallery statistics.
+   */
   async getStats() {
     const total = await this.galleryRepository.count();
     const featured = await this.galleryRepository.count({ where: { featured: true } });
@@ -115,22 +153,42 @@ export class GalleryService implements OnModuleInit {
     };
   }
 
+  /**
+   * Creates a new gallery item.
+   * @param galleryData - The data for the new item.
+   * @returns The saved gallery item.
+   */
   async create(galleryData: Partial<Gallery>): Promise<Gallery> {
     const item = this.galleryRepository.create(galleryData);
     return this.galleryRepository.save(item);
   }
 
+  /**
+   * Updates an existing gallery item by ID.
+   * @param id - The item ID.
+   * @param galleryData - The updated data.
+   * @returns The updated gallery item.
+   */
   async update(id: string, galleryData: Partial<Gallery>): Promise<Gallery | null> {
     const { id: _, ...updateData } = galleryData as any;
     await this.galleryRepository.update(id, updateData);
     return this.findOne(id);
   }
 
+  /**
+   * Removes a gallery item by ID.
+   * @param id - The item ID.
+   */
   async remove(id: string): Promise<void> {
     await this.galleryRepository.delete(id);
   }
 
+  /**
+   * Internal method to seed the database with initial gallery data.
+   * @private
+   */
   private async seedData() {
+
     const initialData = [
       {
         title: 'Summer Music Festival 2025',
