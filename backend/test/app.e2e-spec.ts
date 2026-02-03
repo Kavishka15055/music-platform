@@ -1,3 +1,10 @@
+/**
+ * File: app.e2e-spec.ts
+ * Author: Kavishka Piyumal
+ * Created: 2026-01-30
+ * Description:
+ *   End-to-end tests for the application root.
+ */
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';

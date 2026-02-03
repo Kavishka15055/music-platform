@@ -1,3 +1,11 @@
+/**
+ * Type: Entity
+ * File: event.entity.ts
+ * Author: Kavishka Piyumal
+ * Created: 2026-01-30
+ * Description:
+ *   Database entity definition for music events.
+ */
 import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()

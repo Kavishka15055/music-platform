@@ -1,3 +1,11 @@
+
+/**
+ * File: gallery.service.ts
+ * Author: Kavishka Piyumal
+ * Created: 2026-01-30
+ * Description:
+ *   Service providing business logic for gallery management and data seeding.
+ */
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like, ArrayContains } from 'typeorm';

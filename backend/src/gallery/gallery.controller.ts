@@ -1,3 +1,9 @@
+/** 
+ * gallery.controller.ts
+ * Controller for managing gallery items.
+ * @license might
+ * @author KAVISHKA
+*/
 import { Controller, Get, Param, Query, Post, Body, Patch, Delete } from '@nestjs/common';
 import { GalleryService } from './gallery.service';
 import { Gallery } from './gallery.entity';

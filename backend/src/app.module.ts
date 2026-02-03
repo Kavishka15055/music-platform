@@ -1,3 +1,11 @@
+/**
+ * File: app.module.ts
+ * Author: Kavishka Piyumal
+ * Created: 2026-01-30
+ * Description:
+ *   Root module of the application. Configures environment variables,
+ *   database connection, and imports feature modules.
+ */
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';

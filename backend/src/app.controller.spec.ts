@@ -1,3 +1,10 @@
+/**
+ * File: app.controller.spec.ts
+ * Author: Kavishka Piyumal
+ * Created: 2026-01-30
+ * Description:
+ *   Unit tests for the AppController.
+ */
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';

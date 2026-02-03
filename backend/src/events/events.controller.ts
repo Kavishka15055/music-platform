@@ -1,3 +1,10 @@
+/**
+ * File: events.controller.ts
+ * Author: Kavishka Piyumal
+ * Created: 2026-01-30
+ * Description:
+ *   Controller handling HTTP requests for event operations.
+ */
 import { Controller, Get, Post, Param, Body, Patch, Delete } from '@nestjs/common';
 import { EventsService } from './events.service';
 

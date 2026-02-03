@@ -1,3 +1,10 @@
+/**
+ * File: gallery.entity.ts
+ * Author: Kavishka Piyumal
+ * Created: 2026-01-30
+ * Description:
+ *   Database entity definition for gallery items.
+ */
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn } from 'typeorm';
 
 @Entity()
