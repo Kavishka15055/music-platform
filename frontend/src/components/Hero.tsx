@@ -2,9 +2,11 @@
 
 import { Play, Users, Star } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 export default function Hero() {
   const [isPlaying, setIsPlaying] = useState(false);
+  const t = useTranslations('HomePage');
 
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-indigo-300 via-white to-blue-200 py-20 sm:py-32">
@@ -15,14 +17,12 @@ export default function Hero() {
           {/* Left Content */}
           <div className="space-y-8">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
-              Master New Skills
-              <span className="block text-indigo-600 mt-2">with Live Experts.</span>
+              {t('title')}
+              <span className="block text-indigo-600 mt-2">{t('subtitle')}</span>
             </h1>
 
             <p className="text-lg text-gray-600 max-w-2xl">
-              Join Australia's premier online music academy. Live one-on-one lessons, 
-              interactive sheet music, practice tools, and performance opportunities all 
-              designed to help you grow as a musician
+              {t('description')}
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4">
@@ -30,7 +30,7 @@ export default function Hero() {
                 href="/register"
                 className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-8 py-3 text-base font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
               >
-                Get Started
+                {t('getStarted')}
               </a>
             </div>
 
@@ -38,15 +38,15 @@ export default function Hero() {
             <div className="grid grid-cols-3 gap-6 pt-8">
               <div>
                 <div className="text-2xl font-bold text-gray-900">2,000+</div>
-                <div className="text-sm text-gray-600">Active Students</div>
+                <div className="text-sm text-gray-600">{t('stats.students')}</div>
               </div>
               <div>
                 <div className="text-2xl font-bold text-gray-900">100+</div>
-                <div className="text-sm text-gray-600">Expert Teachers</div>
+                <div className="text-sm text-gray-600">{t('stats.teachers')}</div>
               </div>
               <div>
                 <div className="text-2xl font-bold text-gray-900">98%</div>
-                <div className="text-sm text-gray-600">Satisfaction Rate</div>
+                <div className="text-sm text-gray-600">{t('stats.satisfaction')}</div>
               </div>
             </div>
           </div>

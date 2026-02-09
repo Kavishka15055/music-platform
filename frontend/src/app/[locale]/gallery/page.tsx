@@ -1,6 +1,6 @@
-import Gallery from '@/app/components/Gallery';
-import Header from '@/app/components/Header';
-import Footer from '@/app/components/Footer';
+import Gallery from '@/components/Gallery';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 
 export default function GalleryPage() {
   return (

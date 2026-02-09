@@ -1,0 +1,17 @@
+{
+  "events": {
+    "NOT_FOUND": "Event not found",
+    "CREATED": "Event created successfully",
+    "UPDATED": "Event updated successfully",
+    "DELETED": "Event deleted successfully"
+  },
+  "gallery": {
+    "NOT_FOUND": "Gallery item not found",
+    "CREATED": "Gallery item created successfully",
+    "UPDATED": "Gallery item updated successfully",
+    "DELETED": "Gallery item deleted successfully"
+  },
+  "common": {
+    "HELLO": "Hello World!"
+  }
+}

@@ -1,5 +1,5 @@
 import React from 'react';
-import Link from 'next/link';
+import { Link } from '@/i18n/routing';
 
 export default function AdminLayout({
   children,
@@ -22,6 +22,9 @@ export default function AdminLayout({
           </Link>
           <Link href="/admin/gallery" className="block p-3 hover:bg-slate-800 rounded transition-colors">
             Gallery
+          </Link>
+          <Link href="/admin/lessons" className="block p-3 hover:bg-slate-800 rounded transition-colors">
+            Live Lessons
           </Link>
           <div className="pt-8 mt-8 border-t border-slate-800">
             <Link href="/" className="block p-3 hover:bg-slate-800 rounded transition-colors text-slate-400">

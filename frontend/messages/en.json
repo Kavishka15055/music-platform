@@ -1,0 +1,27 @@
+{
+  "HomePage": {
+    "title": "Master New Skills",
+    "subtitle": "with Live Experts.",
+    "description": "Join Australia's premier online music academy. Live one-on-one lessons, interactive sheet music, practice tools, and performance opportunities all designed to help you grow as a musician",
+    "getStarted": "Get Started",
+    "stats": {
+      "students": "Active Students",
+      "teachers": "Expert Teachers",
+      "satisfaction": "Satisfaction Rate"
+    }
+  },
+  "Navbar": {
+    "home": "Home",
+    "about": "About US",
+    "gallery": "Gallery",
+    "events": "Events",
+    "lessons": "Live Lessons",
+    "contact": "Contact Us",
+    "login": "Log In",
+    "register": "Get Started"
+  },
+  "Common": {
+    "platformName": "EduStream",
+    "platformTagline": "Music Lesson Platform"
+  }
+}

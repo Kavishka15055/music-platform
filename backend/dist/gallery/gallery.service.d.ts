@@ -1,9 +1,11 @@
 import { OnModuleInit } from '@nestjs/common';
 import { Repository } from 'typeorm';
+import { I18nService } from 'nestjs-i18n';
 import { Gallery } from './gallery.entity';
 export declare class GalleryService implements OnModuleInit {
     private galleryRepository;
-    constructor(galleryRepository: Repository<Gallery>);
+    private readonly i18n;
+    constructor(galleryRepository: Repository<Gallery>, i18n: I18nService);
     onModuleInit(): Promise<void>;
     findAll(page?: number, limit?: number): Promise<{
         items: Gallery[];

@@ -9,6 +9,7 @@
 import { Injectable, OnModuleInit, NotFoundException, InternalServerErrorException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like, ArrayContains } from 'typeorm';
+import { I18nContext, I18nService } from 'nestjs-i18n';
 import { Gallery } from './gallery.entity';
 
 @Injectable()
@@ -16,6 +17,7 @@ export class GalleryService implements OnModuleInit {
   constructor(
     @InjectRepository(Gallery)
     private galleryRepository: Repository<Gallery>,
+    private readonly i18n: I18nService,
   ) {}
 
   /**
@@ -82,7 +84,9 @@ export class GalleryService implements OnModuleInit {
     try {
       const item = await this.galleryRepository.findOneBy({ id });
       if (!item) {
-        throw new NotFoundException(`Gallery item with ID "${id}" not found`);
+        throw new NotFoundException(
+          this.i18n.t('common.gallery.NOT_FOUND', { lang: I18nContext.current()?.lang || 'en' })
+        );
       }
       return item;
     } catch (error) {

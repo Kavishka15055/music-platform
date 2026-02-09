@@ -8,6 +8,7 @@
 import { Injectable, OnModuleInit, NotFoundException, InternalServerErrorException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
+import { I18nContext, I18nService } from 'nestjs-i18n';
 import { Event } from './event.entity';
 
 @Injectable()
@@ -15,6 +16,7 @@ export class EventsService implements OnModuleInit {
   constructor(
     @InjectRepository(Event)
     private eventsRepository: Repository<Event>,
+    private readonly i18n: I18nService,
   ) {}
 
   /**
@@ -110,7 +112,10 @@ export class EventsService implements OnModuleInit {
 
       event.currentAttendees += 1;
       await this.eventsRepository.save(event);
-      return { success: true, message: 'Registered successfully' };
+      return { 
+        success: true, 
+        message: this.i18n.t('common.events.CREATED', { lang: I18nContext.current()?.lang || 'en' }) 
+      };
     } catch (error) {
       if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
       throw new InternalServerErrorException('Registration failed');
@@ -127,7 +132,9 @@ export class EventsService implements OnModuleInit {
     try {
       const event = await this.eventsRepository.findOneBy({ id });
       if (!event) {
-        throw new NotFoundException(`Event with ID "${id}" not found`);
+        throw new NotFoundException(
+          this.i18n.t('common.events.NOT_FOUND', { lang: I18nContext.current()?.lang || 'en' })
+        );
       }
       return event;
     } catch (error) {

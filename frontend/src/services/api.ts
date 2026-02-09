@@ -35,4 +35,22 @@ export const galleryApi = {
   getById: (id: string) => api.get(`/v1/gallery/${id}`),
 };
 
+// Lessons API
+export const lessonsApi = {
+  getAll: () => api.get('/v1/lessons'),
+  getLive: () => api.get('/v1/lessons/live'),
+  getUpcoming: () => api.get('/v1/lessons/upcoming'),
+  getStats: () => api.get('/v1/lessons/stats'),
+  getById: (id: string) => api.get(`/v1/lessons/${id}`),
+  create: (data: any) => api.post('/v1/lessons', data),
+  update: (id: string, data: any) => api.patch(`/v1/lessons/${id}`, data),
+  delete: (id: string) => api.delete(`/v1/lessons/${id}`),
+  start: (id: string) => api.post(`/v1/lessons/${id}/start`),
+  end: (id: string) => api.post(`/v1/lessons/${id}/end`),
+  getToken: (id: string, role: 'host' | 'audience') => 
+    api.get(`/v1/lessons/${id}/token?role=${role}`),
+  join: (id: string) => api.post(`/v1/lessons/${id}/join`),
+  leave: (id: string) => api.post(`/v1/lessons/${id}/leave`),
+};
+
 export default api;

@@ -16,11 +16,14 @@ exports.EventsService = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
+const nestjs_i18n_1 = require("nestjs-i18n");
 const event_entity_1 = require("./event.entity");
 let EventsService = class EventsService {
     eventsRepository;
-    constructor(eventsRepository) {
+    i18n;
+    constructor(eventsRepository, i18n) {
         this.eventsRepository = eventsRepository;
+        this.i18n = i18n;
     }
     async onModuleInit() {
         try {
@@ -88,7 +91,10 @@ let EventsService = class EventsService {
             }
             event.currentAttendees += 1;
             await this.eventsRepository.save(event);
-            return { success: true, message: 'Registered successfully' };
+            return {
+                success: true,
+                message: this.i18n.t('common.events.CREATED', { lang: nestjs_i18n_1.I18nContext.current()?.lang || 'en' })
+            };
         }
         catch (error) {
             if (error instanceof common_1.NotFoundException || error instanceof common_1.BadRequestException)
@@ -100,7 +106,7 @@ let EventsService = class EventsService {
         try {
             const event = await this.eventsRepository.findOneBy({ id });
             if (!event) {
-                throw new common_1.NotFoundException(`Event with ID "${id}" not found`);
+                throw new common_1.NotFoundException(this.i18n.t('common.events.NOT_FOUND', { lang: nestjs_i18n_1.I18nContext.current()?.lang || 'en' }));
             }
             return event;
         }
@@ -192,6 +198,7 @@ exports.EventsService = EventsService;
 exports.EventsService = EventsService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(event_entity_1.Event)),
-    __metadata("design:paramtypes", [typeorm_2.Repository])
+    __metadata("design:paramtypes", [typeorm_2.Repository,
+        nestjs_i18n_1.I18nService])
 ], EventsService);
 //# sourceMappingURL=events.service.js.map

@@ -16,11 +16,14 @@ exports.GalleryService = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
+const nestjs_i18n_1 = require("nestjs-i18n");
 const gallery_entity_1 = require("./gallery.entity");
 let GalleryService = class GalleryService {
     galleryRepository;
-    constructor(galleryRepository) {
+    i18n;
+    constructor(galleryRepository, i18n) {
         this.galleryRepository = galleryRepository;
+        this.i18n = i18n;
     }
     async onModuleInit() {
         try {
@@ -63,7 +66,7 @@ let GalleryService = class GalleryService {
         try {
             const item = await this.galleryRepository.findOneBy({ id });
             if (!item) {
-                throw new common_1.NotFoundException(`Gallery item with ID "${id}" not found`);
+                throw new common_1.NotFoundException(this.i18n.t('common.gallery.NOT_FOUND', { lang: nestjs_i18n_1.I18nContext.current()?.lang || 'en' }));
             }
             return item;
         }
@@ -262,6 +265,7 @@ exports.GalleryService = GalleryService;
 exports.GalleryService = GalleryService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(gallery_entity_1.Gallery)),
-    __metadata("design:paramtypes", [typeorm_2.Repository])
+    __metadata("design:paramtypes", [typeorm_2.Repository,
+        nestjs_i18n_1.I18nService])
 ], GalleryService);
 //# sourceMappingURL=gallery.service.js.map

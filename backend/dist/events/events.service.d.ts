@@ -1,9 +1,11 @@
 import { OnModuleInit } from '@nestjs/common';
 import { Repository } from 'typeorm';
+import { I18nService } from 'nestjs-i18n';
 import { Event } from './event.entity';
 export declare class EventsService implements OnModuleInit {
     private eventsRepository;
-    constructor(eventsRepository: Repository<Event>);
+    private readonly i18n;
+    constructor(eventsRepository: Repository<Event>, i18n: I18nService);
     onModuleInit(): Promise<void>;
     findAll(): Promise<Event[]>;
     findUpcoming(): Promise<Event[]>;
