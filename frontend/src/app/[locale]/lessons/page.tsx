@@ -107,7 +107,7 @@ export default function LessonsPage() {
       {/* Hero Section */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-purple-900/50 to-pink-900/50"></div>
-        <div className="absolute inset-0 bg-[url('/images/pattern.svg')] opacity-10"></div>
+        <div className="absolute inset-0 bg-white/5"></div>
         <div className="relative max-w-7xl mx-auto px-6 py-16">
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
             Live Music Lessons

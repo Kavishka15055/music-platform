@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, X, Play, Square, Video } from 'lucide-react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from '@/i18n/routing';
+import { useParams } from 'next/navigation';
 
 interface Lesson {
   id: string;
@@ -23,7 +24,7 @@ interface Lesson {
 export default function AdminLessonsPage() {
   const router = useRouter();
   const params = useParams();
-  const locale = params.locale as string;
+  // ... (locale no longer needed manually)
 
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -121,8 +122,9 @@ export default function AdminLessonsPage() {
   };
 
   const handleJoinAsHost = (lesson: Lesson) => {
-    // Add locale to path to avoid 404
-    router.push(`/${locale}/admin/lessons/${lesson.id}/live`);
+    const url = `/admin/lessons/${lesson.id}/live`;
+    console.log('Navigating to:', url);
+    router.push(url);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
