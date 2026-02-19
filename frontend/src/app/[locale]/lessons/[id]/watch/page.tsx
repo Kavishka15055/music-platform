@@ -202,6 +202,27 @@ export default function WatchLessonPage() {
     };
   }, [lessonId]);
 
+  // Poll for lesson status
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`http://localhost:3005/api/v1/lessons/${lessonId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.status === 'ended') {
+            clearInterval(interval);
+            await cleanup();
+            setError('The host has ended the lesson.');
+          }
+        }
+      } catch (e) {
+        console.error('Polling error:', e);
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [lessonId]);
+
   // Play local video once the ref becomes available after isJoined state change
   useEffect(() => {
     if (isJoined && localVideoRef.current && localVideoTrackRef.current && isCameraOn) {

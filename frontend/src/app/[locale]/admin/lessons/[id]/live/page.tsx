@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { useRouter } from '@/i18n/routing';
-import { Mic, MicOff, Video, VideoOff, PhoneOff, Users, Monitor, MonitorOff, Loader2, MessageSquare } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, Users, Monitor, MonitorOff, Loader2, MessageSquare, Circle, Pause, Square } from 'lucide-react';
 import Chat from '@/components/Chat';
 
 interface LessonData {
@@ -21,6 +21,8 @@ interface RemoteUser {
   hasAudio: boolean;
 }
 
+type RecordingState = 'idle' | 'recording' | 'paused';
+
 export default function AdminLiveLessonPage() {
   const params = useParams();
   const router = useRouter();
@@ -37,6 +39,11 @@ export default function AdminLiveLessonPage() {
   const [isJoining, setIsJoining] = useState(false);
   const [remoteUsers, setRemoteUsers] = useState<Map<string | number, RemoteUser>>(new Map());
   const [showChat, setShowChat] = useState(true);
+
+  // Recording State
+  const [recordingState, setRecordingState] = useState<RecordingState>('idle');
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
 
   const agoraEngine = useRef<any>(null);
   const clientRef = useRef<any>(null);
@@ -356,8 +363,81 @@ export default function AdminLiveLessonPage() {
     }
   };
 
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: true
+      });
+
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm; codecs=vp9' });
+      mediaRecorderRef.current = mediaRecorder;
+      recordedChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordedChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        document.body.appendChild(a);
+        a.style.display = 'none';
+        a.href = url;
+        a.download = `lesson-recording-${new Date().toISOString()}.webm`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        
+        // Stop all tracks to stop the "sharing" indicator
+        stream.getTracks().forEach(track => track.stop());
+        
+        setRecordingState('idle');
+      };
+
+      // Handle user clicking "Stop Sharing" on the browser UI
+      stream.getVideoTracks()[0].onended = () => {
+        stopRecording();
+      };
+
+      mediaRecorder.start(1000); // Collect 1s chunks
+      setRecordingState('recording');
+    } catch (err) {
+      console.error('Failed to start recording:', err);
+      alert('Failed to start recording. Please try again.');
+    }
+  };
+
+  const pauseRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.pause();
+      setRecordingState('paused');
+    }
+  };
+
+  const resumeRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'paused') {
+      mediaRecorderRef.current.resume();
+      setRecordingState('recording');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+      // State reset happens in onstop event
+    }
+  };
+
   const endBroadcast = async () => {
     if (confirm("Are you sure you want to end this lesson?")) {
+      // Auto-stop/save recording if active
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
+
       await handleLeave();
 
       try {
@@ -573,6 +653,54 @@ export default function AdminLiveLessonPage() {
             >
               {isScreenSharing ? <MonitorOff size={20} /> : <Monitor size={20} />}
             </button>
+
+            <div className="w-px h-8 bg-gray-700 mx-1"></div>
+            
+            {/* Recording Controls */}
+            {recordingState === 'idle' ? (
+              <button
+                onClick={startRecording}
+                className="w-11 h-11 rounded-full flex items-center justify-center bg-gray-700 text-white hover:bg-gray-600 transition-all"
+                title="Start Recording"
+              >
+                <Circle size={20} className="text-red-500 fill-current" />
+              </button>
+            ) : (
+              <>
+                <div className="flex items-center gap-2 bg-gray-800 rounded-full px-2 py-1 border border-red-500/30">
+                  <div className={`w-2 h-2 rounded-full ${recordingState === 'recording' ? 'bg-red-500 animate-pulse' : 'bg-yellow-500'}`}></div>
+                  <span className="text-xs font-mono w-16 text-center">
+                    {recordingState === 'recording' ? 'REC' : 'PAUSED'}
+                  </span>
+                  
+                  {recordingState === 'recording' ? (
+                    <button
+                      onClick={pauseRecording}
+                      className="p-1.5 hover:bg-gray-700 rounded-full text-white"
+                      title="Pause Recording"
+                    >
+                      <Pause size={14} fill="currentColor" />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={resumeRecording}
+                      className="p-1.5 hover:bg-gray-700 rounded-full text-white"
+                      title="Resume Recording"
+                    >
+                      <Circle size={14} className="text-red-500 fill-current" />
+                    </button>
+                  )}
+                  
+                  <button
+                    onClick={stopRecording}
+                    className="p-1.5 hover:bg-gray-700 rounded-full text-white"
+                    title="Stop Recording"
+                  >
+                    <Square size={14} fill="currentColor" />
+                  </button>
+                </div>
+              </>
+            )}
 
             <div className="w-px h-8 bg-gray-700 mx-1"></div>
 
