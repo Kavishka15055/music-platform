@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { useRouter } from '@/i18n/routing';
 import { Mic, MicOff, Video, VideoOff, PhoneOff, Users, Play, MessageSquare } from 'lucide-react';
 import Chat from '@/components/Chat';
+import DevicePreCheck, { DevicePreferences } from '@/components/DevicePreCheck';
 
 interface LessonData {
   id: string;
@@ -29,6 +30,7 @@ export default function WatchLessonPage() {
   const lessonId = params.id as string;
 
   const [lesson, setLesson] = useState<LessonData | null>(null);
+  const [showLobby, setShowLobby] = useState(true);
   const [isJoined, setIsJoined] = useState(false);
   const [isMicOn, setIsMicOn] = useState(false);
   const [isCameraOn, setIsCameraOn] = useState(false);
@@ -45,111 +47,121 @@ export default function WatchLessonPage() {
   const localVideoTrackRef = useRef<any>(null);
   const localVideoRef = useRef<HTMLDivElement>(null);
   const remoteVideoRef = useRef<HTMLDivElement>(null);
+  const devicePrefsRef = useRef<DevicePreferences | null>(null);
 
+  // Fetch lesson data on mount (for lobby info + status check)
   useEffect(() => {
-    // Use a local cancelled flag (standard React async effect pattern)
-    let cancelled = false;
-
-    const loadAndJoin = async () => {
+    const fetchLesson = async () => {
       try {
-        const AgoraRTC = (await import('agora-rtc-sdk-ng')).default;
-        if (cancelled) return; // Abort if unmounted
-
-        agoraEngine.current = AgoraRTC;
-
-        AgoraRTC.onAutoplayFailed = () => {
-          if (!cancelled) setAudioBlocked(true);
-        };
-
-        // Fetch lesson
         const res = await fetch(`http://localhost:3005/api/v1/lessons/${lessonId}`);
         if (!res.ok) throw new Error('Lesson not found');
         const data = await res.json();
-
-        if (cancelled) return; // Abort if unmounted
 
         if (data.status !== 'live') {
           setError('This lesson is not currently live');
           return;
         }
-
         setLesson(data);
+      } catch (err: any) {
+        setError(err.message || 'Failed to load lesson');
+      }
+    };
+    fetchLesson();
+  }, [lessonId]);
 
-        // Join channel
-        if (clientRef.current) return; // Already joined
+  // Start Agora session — only called when user clicks "Join Lesson" from the lobby
+  const startSession = async (prefs: DevicePreferences) => {
+    devicePrefsRef.current = prefs;
+    setShowLobby(false);
 
-        const tokenRes = await fetch(`http://localhost:3005/api/v1/lessons/${lessonId}/token?role=host`);
-        if (!tokenRes.ok) throw new Error('Failed to get token');
-        const { token, channelName, uid, appId } = await tokenRes.json();
+    let cancelled = false;
 
-        if (cancelled) return; // Abort if unmounted
+    try {
+      const AgoraRTC = (await import('agora-rtc-sdk-ng')).default;
+      if (cancelled) return;
 
-        if (!appId || appId.includes('your_')) {
-          setError('Agora credentials not configured');
-          return;
-        }
+      agoraEngine.current = AgoraRTC;
 
-        const client = AgoraRTC.createClient({ mode: 'live', codec: 'vp8' });
-        clientRef.current = client;
+      AgoraRTC.onAutoplayFailed = () => {
+        if (!cancelled) setAudioBlocked(true);
+      };
 
-        await client.setClientRole('host');
+      // Get token
+      const tokenRes = await fetch(`http://localhost:3005/api/v1/lessons/${lessonId}/token?role=host`);
+      if (!tokenRes.ok) throw new Error('Failed to get token');
+      const { token, channelName, uid, appId } = await tokenRes.json();
 
-        // Handle remote user events
-        client.on('user-published', async (user: any, mediaType: "audio" | "video") => {
-          await client.subscribe(user, mediaType);
+      if (cancelled) return;
 
-          setRemoteUsers(prev => {
-            const updated = new Map(prev);
-            const existing = updated.get(user.uid) || {
-              uid: user.uid, videoTrack: null, audioTrack: null, hasVideo: false, hasAudio: false,
-            };
+      if (!appId || appId.includes('your_')) {
+        setError('Agora credentials not configured');
+        return;
+      }
 
-            if (mediaType === 'video') {
-              existing.videoTrack = user.videoTrack;
-              existing.hasVideo = true;
+      const client = AgoraRTC.createClient({ mode: 'live', codec: 'vp8' });
+      clientRef.current = client;
+
+      await client.setClientRole('host');
+
+      // Handle remote user events
+      client.on('user-published', async (user: any, mediaType: "audio" | "video") => {
+        await client.subscribe(user, mediaType);
+
+        setRemoteUsers(prev => {
+          const updated = new Map(prev);
+          const existing = updated.get(user.uid) || {
+            uid: user.uid, videoTrack: null, audioTrack: null, hasVideo: false, hasAudio: false,
+          };
+
+          if (mediaType === 'video') {
+            existing.videoTrack = user.videoTrack;
+            existing.hasVideo = true;
+          }
+          if (mediaType === 'audio') {
+            existing.audioTrack = user.audioTrack;
+            existing.hasAudio = true;
+            try { user.audioTrack.play(); } catch (e) {
+              if (!cancelled) setAudioBlocked(true);
             }
-            if (mediaType === 'audio') {
-              existing.audioTrack = user.audioTrack;
-              existing.hasAudio = true;
-              try { user.audioTrack.play(); } catch (e) {
-                if (!cancelled) setAudioBlocked(true);
-              }
-            }
+          }
 
+          updated.set(user.uid, { ...existing });
+          return updated;
+        });
+      });
+
+      client.on('user-unpublished', (user: any, mediaType: string) => {
+        setRemoteUsers(prev => {
+          const updated = new Map(prev);
+          const existing = updated.get(user.uid);
+          if (existing) {
+            if (mediaType === 'video') { existing.hasVideo = false; existing.videoTrack = null; }
+            if (mediaType === 'audio') { existing.hasAudio = false; existing.audioTrack = null; }
             updated.set(user.uid, { ...existing });
-            return updated;
-          });
+          }
+          return updated;
         });
+      });
 
-        client.on('user-unpublished', (user: any, mediaType: string) => {
-          setRemoteUsers(prev => {
-            const updated = new Map(prev);
-            const existing = updated.get(user.uid);
-            if (existing) {
-              if (mediaType === 'video') { existing.hasVideo = false; existing.videoTrack = null; }
-              if (mediaType === 'audio') { existing.hasAudio = false; existing.audioTrack = null; }
-              updated.set(user.uid, { ...existing });
-            }
-            return updated;
-          });
+      client.on('user-left', (user: any) => {
+        setRemoteUsers(prev => {
+          const updated = new Map(prev);
+          updated.delete(user.uid);
+          return updated;
         });
+      });
 
-        client.on('user-left', (user: any) => {
-          setRemoteUsers(prev => {
-            const updated = new Map(prev);
-            updated.delete(user.uid);
-            return updated;
-          });
-        });
+      await client.join(appId, channelName, token, uid);
+      if (cancelled) { client.leave(); clientRef.current = null; return; }
 
-        await client.join(appId, channelName, token, uid);
-        if (cancelled) { client.leave(); clientRef.current = null; return; }
+      // Create local tracks using selected devices from the lobby
+      const tracksToPublish: any[] = [];
 
-        // Create local tracks — camera/mic are optional (may fail if device in use)
-        const tracksToPublish: any[] = [];
-
+      if (prefs.micOn) {
         try {
-          const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+          const micConfig: any = {};
+          if (prefs.micDeviceId) micConfig.microphoneId = prefs.micDeviceId;
+          const audioTrack = await AgoraRTC.createMicrophoneAudioTrack(micConfig);
           localAudioTrackRef.current = audioTrack;
           tracksToPublish.push(audioTrack);
           setIsMicOn(true);
@@ -158,52 +170,55 @@ export default function WatchLessonPage() {
           setIsMicOn(false);
           setDeviceError(prev => ({ ...prev, audio: 'Microphone in use or not found' }));
         }
+      } else {
+        setIsMicOn(false);
+      }
 
+      if (prefs.cameraOn) {
         try {
-          const videoTrack = await AgoraRTC.createCameraVideoTrack();
+          const camConfig: any = {};
+          if (prefs.cameraDeviceId) camConfig.cameraId = prefs.cameraDeviceId;
+          const videoTrack = await AgoraRTC.createCameraVideoTrack(camConfig);
           localVideoTrackRef.current = videoTrack;
           tracksToPublish.push(videoTrack);
           setIsCameraOn(true);
         } catch (e: any) {
-          console.warn('Camera not available (may be in use by another tab):', e);
+          console.warn('Camera not available:', e);
           setIsCameraOn(false);
           setDeviceError(prev => ({ ...prev, video: 'Camera in use by another app/tab' }));
         }
-
-        // Publish whatever tracks we got
-        if (tracksToPublish.length > 0) {
-          await client.publish(tracksToPublish);
-        }
-
-        if (cancelled) {
-          if (localAudioTrackRef.current) { localAudioTrackRef.current.stop(); localAudioTrackRef.current.close(); }
-          if (localVideoTrackRef.current) { localVideoTrackRef.current.stop(); localVideoTrackRef.current.close(); }
-          client.leave(); clientRef.current = null;
-          return;
-        }
-
-        await fetch(`http://localhost:3005/api/v1/lessons/${lessonId}/join`, { method: 'POST' });
-
-        setIsJoined(true);
-        setError(null);
-      } catch (err: any) {
-        console.error('Failed to join:', err);
-        if (!cancelled) {
-          setError(err.message || 'Failed to join lesson');
-        }
+      } else {
+        setIsCameraOn(false);
       }
-    };
 
-    loadAndJoin();
+      // Publish whatever tracks we got
+      if (tracksToPublish.length > 0) {
+        await client.publish(tracksToPublish);
+      }
 
-    return () => {
-      cancelled = true;
-      cleanup();
-    };
-  }, [lessonId]);
+      if (cancelled) {
+        if (localAudioTrackRef.current) { localAudioTrackRef.current.stop(); localAudioTrackRef.current.close(); }
+        if (localVideoTrackRef.current) { localVideoTrackRef.current.stop(); localVideoTrackRef.current.close(); }
+        client.leave(); clientRef.current = null;
+        return;
+      }
+
+      await fetch(`http://localhost:3005/api/v1/lessons/${lessonId}/join`, { method: 'POST' });
+
+      setIsJoined(true);
+      setError(null);
+    } catch (err: any) {
+      console.error('Failed to join:', err);
+      if (!cancelled) {
+        setError(err.message || 'Failed to join lesson');
+      }
+    }
+  };
 
   // Poll for lesson status
   useEffect(() => {
+    if (showLobby) return; // Don't poll while in lobby
+
     const interval = setInterval(async () => {
       try {
         const res = await fetch(`http://localhost:3005/api/v1/lessons/${lessonId}`);
@@ -221,7 +236,7 @@ export default function WatchLessonPage() {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [lessonId]);
+  }, [lessonId, showLobby]);
 
   // Play local video once the ref becomes available after isJoined state change
   useEffect(() => {
@@ -267,6 +282,11 @@ export default function WatchLessonPage() {
     }
   };
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => { cleanup(); };
+  }, []);
+
   const handleResumeAudio = () => {
     remoteUsers.forEach((user) => {
       if (user.audioTrack) {
@@ -291,7 +311,9 @@ export default function WatchLessonPage() {
       try {
         const AgoraRTC = agoraEngine.current;
         if (!AgoraRTC) return;
-        const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+        const micConfig: any = {};
+        if (devicePrefsRef.current?.micDeviceId) micConfig.microphoneId = devicePrefsRef.current.micDeviceId;
+        const audioTrack = await AgoraRTC.createMicrophoneAudioTrack(micConfig);
         localAudioTrackRef.current = audioTrack;
         await clientRef.current?.publish(audioTrack);
         setIsMicOn(true);
@@ -313,7 +335,9 @@ export default function WatchLessonPage() {
       try {
         const AgoraRTC = agoraEngine.current;
         if (!AgoraRTC) return;
-        const videoTrack = await AgoraRTC.createCameraVideoTrack();
+        const camConfig: any = {};
+        if (devicePrefsRef.current?.cameraDeviceId) camConfig.cameraId = devicePrefsRef.current.cameraDeviceId;
+        const videoTrack = await AgoraRTC.createCameraVideoTrack(camConfig);
         localVideoTrackRef.current = videoTrack;
         await clientRef.current?.publish(videoTrack);
         setIsCameraOn(true);
@@ -346,6 +370,20 @@ export default function WatchLessonPage() {
             Back to Lessons
           </button>
         </div>
+      </div>
+    );
+  }
+
+  // Show the pre-join lobby
+  if (showLobby) {
+    return (
+      <div className="h-screen bg-[#1a1a2e] flex flex-col overflow-hidden text-white">
+        <DevicePreCheck
+          lessonTitle={lesson?.title}
+          instructor={lesson?.instructor}
+          onJoin={startSession}
+          onBack={() => router.push('/lessons')}
+        />
       </div>
     );
   }
