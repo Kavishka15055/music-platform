@@ -1,10 +1,12 @@
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { Lesson } from './lesson.entity';
+import { LessonReview } from './lesson-review.entity';
 export declare class LessonsService {
     private lessonsRepository;
+    private reviewsRepository;
     private configService;
-    constructor(lessonsRepository: Repository<Lesson>, configService: ConfigService);
+    constructor(lessonsRepository: Repository<Lesson>, reviewsRepository: Repository<LessonReview>, configService: ConfigService);
     findAll(): Promise<Lesson[]>;
     findLive(): Promise<Lesson[]>;
     findUpcoming(): Promise<Lesson[]>;
@@ -28,4 +30,12 @@ export declare class LessonsService {
         liveLessons: number;
         upcomingLessons: number;
     }>;
+    createReview(lessonId: string, data: {
+        studentName: string;
+        studentId: string;
+        rating: number;
+        comment: string;
+    }): Promise<LessonReview>;
+    getReviews(lessonId: string): Promise<LessonReview[]>;
+    deleteReview(reviewId: string, studentId: string): Promise<void>;
 }

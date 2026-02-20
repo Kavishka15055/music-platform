@@ -2,8 +2,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Clock, Users, Calendar, ArrowLeft, PlayCircle } from 'lucide-react';
+import { Clock, Users, Calendar, ArrowLeft, PlayCircle, Star, Trash2 } from 'lucide-react';
 import { Link } from '@/i18n/routing';
+
+interface LessonReview {
+  id: string;
+  studentName: string;
+  studentId: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+}
 
 interface Lesson {
   id: string;
@@ -18,6 +27,7 @@ interface Lesson {
   status: 'scheduled' | 'live' | 'ended';
   maxParticipants: number;
   currentParticipants: number;
+  reviews: LessonReview[];
 }
 
 export default function LessonDetailPage() {
@@ -28,6 +38,8 @@ export default function LessonDetailPage() {
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState(true);
   const [countdown, setCountdown] = useState('');
+
+  const currentStudentId = typeof window !== 'undefined' ? sessionStorage.getItem('studentId') : null;
 
   useEffect(() => {
     fetchLesson();
@@ -107,6 +119,37 @@ export default function LessonDetailPage() {
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const getAverageRating = (reviews: LessonReview[]) => {
+    if (!reviews || reviews.length === 0) return 0;
+    return reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+  };
+
+  const renderStars = (rating: number, size: number = 16) => (
+    <div className="flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map((s) => (
+        <Star
+          key={s}
+          size={size}
+          className={s <= Math.round(rating) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-600'}
+        />
+      ))}
+    </div>
+  );
+
+  const handleDeleteReview = async (reviewId: string) => {
+    if (!currentStudentId) return;
+    try {
+      await fetch(`http://localhost:3005/api/v1/lessons/reviews/${reviewId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ studentId: currentStudentId }),
+      });
+      fetchLesson();
+    } catch (e) {
+      console.error('Failed to delete review:', e);
+    }
   };
 
   return (
@@ -234,8 +277,58 @@ export default function LessonDetailPage() {
                 <p className="text-gray-400">This lesson has ended</p>
               </div>
             )}
+
+            {/* Average Rating in Sidebar */}
+            {lesson.reviews && lesson.reviews.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-slate-700">
+                <div className="flex items-center gap-2 mb-1">
+                  {renderStars(getAverageRating(lesson.reviews))}
+                  <span className="text-yellow-400 font-semibold">{getAverageRating(lesson.reviews).toFixed(1)}</span>
+                </div>
+                <p className="text-gray-500 text-xs">{lesson.reviews.length} review{lesson.reviews.length !== 1 ? 's' : ''}</p>
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Reviews Section */}
+        {lesson.reviews && lesson.reviews.length > 0 && (
+          <div className="mt-8">
+            <h2 className="text-2xl font-bold text-white mb-6">Student Reviews</h2>
+            <div className="space-y-4">
+              {lesson.reviews.map((review) => (
+                <div key={review.id} className="bg-slate-800 rounded-xl p-5 border border-slate-700">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                        <span className="text-white text-xs font-bold">{review.studentName.charAt(0).toUpperCase()}</span>
+                      </div>
+                      <div>
+                        <p className="text-white text-sm font-medium">{review.studentName}</p>
+                        <p className="text-gray-500 text-xs">{new Date(review.createdAt).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {renderStars(review.rating, 14)}
+                      {currentStudentId === review.studentId && (
+                        <button
+                          onClick={() => handleDeleteReview(review.id)}
+                          className="text-red-400/60 hover:text-red-400 transition-colors p-1"
+                          title="Delete your review"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {review.comment && (
+                    <p className="text-gray-300 text-sm mt-2 pl-11">{review.comment}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -12,13 +12,14 @@ const typeorm_1 = require("@nestjs/typeorm");
 const lessons_controller_1 = require("./lessons.controller");
 const lessons_service_1 = require("./lessons.service");
 const lesson_entity_1 = require("./lesson.entity");
+const lesson_review_entity_1 = require("./lesson-review.entity");
 const chat_gateway_1 = require("./chat.gateway");
 let LessonsModule = class LessonsModule {
 };
 exports.LessonsModule = LessonsModule;
 exports.LessonsModule = LessonsModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([lesson_entity_1.Lesson])],
+        imports: [typeorm_1.TypeOrmModule.forFeature([lesson_entity_1.Lesson, lesson_review_entity_1.LessonReview])],
         controllers: [lessons_controller_1.LessonsController],
         providers: [lessons_service_1.LessonsService, chat_gateway_1.ChatGateway],
         exports: [lessons_service_1.LessonsService],

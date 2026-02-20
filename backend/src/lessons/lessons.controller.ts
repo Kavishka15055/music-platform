@@ -45,6 +45,17 @@ export class LessonsController {
   }
 
   /**
+   * Deletes a review (student can only delete their own).
+   */
+  @Delete('reviews/:reviewId')
+  deleteReview(
+    @Param('reviewId') reviewId: string,
+    @Body() body: { studentId: string },
+  ) {
+    return this.lessonsService.deleteReview(reviewId, body.studentId);
+  }
+
+  /**
    * Retrieves a single lesson by ID.
    */
   @Get(':id')
@@ -61,6 +72,14 @@ export class LessonsController {
     @Query('role') role: 'host' | 'audience' = 'audience',
   ) {
     return this.lessonsService.getTokenForLesson(id, role);
+  }
+
+  /**
+   * Gets reviews for a lesson.
+   */
+  @Get(':id/reviews')
+  getReviews(@Param('id') id: string) {
+    return this.lessonsService.getReviews(id);
   }
 
   /**
@@ -101,6 +120,17 @@ export class LessonsController {
   @Post(':id/leave')
   leaveLesson(@Param('id') id: string) {
     return this.lessonsService.leaveLesson(id);
+  }
+
+  /**
+   * Creates a review for a lesson.
+   */
+  @Post(':id/reviews')
+  createReview(
+    @Param('id') id: string,
+    @Body() reviewData: { studentName: string; studentId: string; rating: number; comment: string },
+  ) {
+    return this.lessonsService.createReview(id, reviewData);
   }
 
   /**

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { useRouter } from '@/i18n/routing';
-import { Mic, MicOff, Video, VideoOff, PhoneOff, Users, Play, MessageSquare } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, Users, Play, MessageSquare, Star, X } from 'lucide-react';
 import Chat from '@/components/Chat';
 import DevicePreCheck, { DevicePreferences } from '@/components/DevicePreCheck';
 
@@ -39,7 +39,33 @@ export default function WatchLessonPage() {
   const [audioBlocked, setAudioBlocked] = useState(false);
   const [remoteUsers, setRemoteUsers] = useState<Map<string | number, RemoteUser>>(new Map());
   const [showChat, setShowChat] = useState(true);
-  const [userName] = useState(`Student_${Math.floor(Math.random() * 1000)}`);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewHover, setReviewHover] = useState(0);
+  const [reviewComment, setReviewComment] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
+
+  // Persistent student identity using sessionStorage
+  const [userName] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const stored = sessionStorage.getItem('studentName');
+      if (stored) return stored;
+      const name = `Student_${Math.floor(Math.random() * 1000)}`;
+      sessionStorage.setItem('studentName', name);
+      return name;
+    }
+    return `Student_${Math.floor(Math.random() * 1000)}`;
+  });
+  const [studentId] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const stored = sessionStorage.getItem('studentId');
+      if (stored) return stored;
+      const id = `sid_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+      sessionStorage.setItem('studentId', id);
+      return id;
+    }
+    return `sid_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+  });
 
   const agoraEngine = useRef<any>(null);
   const clientRef = useRef<any>(null);
@@ -298,6 +324,30 @@ export default function WatchLessonPage() {
 
   const handleLeave = async () => {
     await cleanup();
+    setShowReviewModal(true);
+  };
+
+  const submitReview = async () => {
+    if (reviewRating === 0) return;
+    setSubmittingReview(true);
+    try {
+      await fetch(`http://localhost:3005/api/v1/lessons/${lessonId}/reviews`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentName: userName,
+          studentId,
+          rating: reviewRating,
+          comment: reviewComment,
+        }),
+      });
+    } catch (e) {
+      console.error('Failed to submit review:', e);
+    }
+    router.push('/lessons');
+  };
+
+  const skipReview = () => {
     router.push('/lessons');
   };
 
@@ -559,6 +609,85 @@ export default function WatchLessonPage() {
 
         <div className="w-20"></div>
       </div>
+
+      {/* Review Modal */}
+      {showReviewModal && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="bg-[#1e1e3a] border border-purple-500/30 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl shadow-purple-500/10">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-white">Rate this Lesson</h2>
+              <button onClick={skipReview} className="text-gray-400 hover:text-white transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+
+            <p className="text-gray-400 mb-6">How was your experience with <span className="text-purple-300 font-medium">{lesson?.title}</span>?</p>
+
+            {/* Star Rating */}
+            <div className="flex justify-center gap-2 mb-6">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  onClick={() => setReviewRating(star)}
+                  onMouseEnter={() => setReviewHover(star)}
+                  onMouseLeave={() => setReviewHover(0)}
+                  className="transition-transform hover:scale-110"
+                >
+                  <Star
+                    size={36}
+                    className={`transition-colors ${
+                      star <= (reviewHover || reviewRating)
+                        ? 'text-yellow-400 fill-yellow-400'
+                        : 'text-gray-600'
+                    }`}
+                  />
+                </button>
+              ))}
+            </div>
+            {reviewRating > 0 && (
+              <p className="text-center text-sm text-yellow-300/80 mb-4">
+                {['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'][reviewRating]}
+              </p>
+            )}
+
+            {/* Comment */}
+            <textarea
+              value={reviewComment}
+              onChange={(e) => setReviewComment(e.target.value)}
+              placeholder="Share your thoughts about this lesson... (optional)"
+              className="w-full bg-[#2a2a4a] border border-gray-700 rounded-xl p-4 text-white placeholder-gray-500 resize-none h-28 focus:outline-none focus:border-purple-500 transition-colors"
+            />
+
+            {/* Buttons */}
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={skipReview}
+                className="flex-1 px-4 py-3 bg-gray-700 text-gray-300 rounded-xl hover:bg-gray-600 transition-colors font-medium"
+              >
+                Skip
+              </button>
+              <button
+                onClick={submitReview}
+                disabled={reviewRating === 0 || submittingReview}
+                className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 ${
+                  reviewRating > 0
+                    ? 'bg-purple-600 text-white hover:bg-purple-700 shadow-lg shadow-purple-500/20'
+                    : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                {submittingReview ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <Star size={18} className="fill-current" />
+                    Submit Review
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

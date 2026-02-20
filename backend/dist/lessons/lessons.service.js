@@ -19,16 +19,22 @@ const typeorm_2 = require("typeorm");
 const config_1 = require("@nestjs/config");
 const agora_token_1 = require("agora-token");
 const lesson_entity_1 = require("./lesson.entity");
+const lesson_review_entity_1 = require("./lesson-review.entity");
 let LessonsService = class LessonsService {
     lessonsRepository;
+    reviewsRepository;
     configService;
-    constructor(lessonsRepository, configService) {
+    constructor(lessonsRepository, reviewsRepository, configService) {
         this.lessonsRepository = lessonsRepository;
+        this.reviewsRepository = reviewsRepository;
         this.configService = configService;
     }
     async findAll() {
         try {
-            return await this.lessonsRepository.find({ order: { scheduledDate: 'DESC' } });
+            return await this.lessonsRepository.find({
+                order: { scheduledDate: 'DESC' },
+                relations: ['reviews'],
+            });
         }
         catch (error) {
             throw new common_1.InternalServerErrorException('Failed to retrieve lessons');
@@ -61,7 +67,10 @@ let LessonsService = class LessonsService {
     }
     async findOne(id) {
         try {
-            const lesson = await this.lessonsRepository.findOneBy({ id });
+            const lesson = await this.lessonsRepository.findOne({
+                where: { id },
+                relations: ['reviews'],
+            });
             if (!lesson) {
                 throw new common_1.NotFoundException(`Lesson with ID "${id}" not found`);
             }
@@ -228,12 +237,60 @@ let LessonsService = class LessonsService {
             throw new common_1.InternalServerErrorException('Failed to retrieve lesson statistics');
         }
     }
+    async createReview(lessonId, data) {
+        try {
+            await this.findOne(lessonId);
+            if (!data.rating || data.rating < 1 || data.rating > 5) {
+                throw new common_1.BadRequestException('Rating must be between 1 and 5');
+            }
+            const review = this.reviewsRepository.create({
+                ...data,
+                lessonId,
+            });
+            return await this.reviewsRepository.save(review);
+        }
+        catch (error) {
+            if (error instanceof common_1.NotFoundException || error instanceof common_1.BadRequestException)
+                throw error;
+            throw new common_1.InternalServerErrorException('Failed to create review');
+        }
+    }
+    async getReviews(lessonId) {
+        try {
+            return await this.reviewsRepository.find({
+                where: { lessonId },
+                order: { createdAt: 'DESC' },
+            });
+        }
+        catch (error) {
+            throw new common_1.InternalServerErrorException('Failed to retrieve reviews');
+        }
+    }
+    async deleteReview(reviewId, studentId) {
+        try {
+            const review = await this.reviewsRepository.findOneBy({ id: reviewId });
+            if (!review) {
+                throw new common_1.NotFoundException('Review not found');
+            }
+            if (review.studentId !== studentId) {
+                throw new common_1.ForbiddenException('You can only delete your own reviews');
+            }
+            await this.reviewsRepository.delete(reviewId);
+        }
+        catch (error) {
+            if (error instanceof common_1.NotFoundException || error instanceof common_1.ForbiddenException)
+                throw error;
+            throw new common_1.InternalServerErrorException('Failed to delete review');
+        }
+    }
 };
 exports.LessonsService = LessonsService;
 exports.LessonsService = LessonsService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(lesson_entity_1.Lesson)),
+    __param(1, (0, typeorm_1.InjectRepository)(lesson_review_entity_1.LessonReview)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
         config_1.ConfigService])
 ], LessonsService);
 //# sourceMappingURL=lessons.service.js.map

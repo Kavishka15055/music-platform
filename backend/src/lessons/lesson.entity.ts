@@ -6,7 +6,8 @@
  * Description:
  *   Database entity definition for live video/audio lessons.
  */
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, OneToMany } from 'typeorm';
+import { LessonReview } from './lesson-review.entity';
 
 export enum LessonStatus {
   SCHEDULED = 'scheduled',
@@ -21,6 +22,9 @@ export class Lesson {
 
   @Column()
   title: string;
+
+  @OneToMany(() => LessonReview, (review) => review.lesson)
+  reviews: LessonReview[];
 
   @Column('text')
   description: string;

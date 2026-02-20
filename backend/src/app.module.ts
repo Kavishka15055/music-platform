@@ -16,6 +16,7 @@ import { GalleryModule } from './gallery/gallery.module';
 import { Gallery } from './gallery/gallery.entity';
 import { LessonsModule } from './lessons/lessons.module';
 import { Lesson } from './lessons/lesson.entity';
+import { LessonReview } from './lessons/lesson-review.entity';
 
 @Module({
   imports: [
@@ -27,7 +28,7 @@ import { Lesson } from './lessons/lesson.entity';
       useFactory: (configService: ConfigService) => ({
         type: 'sqlite',
         database: 'database.sqlite',
-        entities: [Event, Gallery, Lesson],
+        entities: [Event, Gallery, Lesson, LessonReview],
         synchronize: true, 
       }),
       inject: [ConfigService],

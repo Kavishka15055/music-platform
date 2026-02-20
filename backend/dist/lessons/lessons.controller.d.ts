@@ -10,6 +10,9 @@ export declare class LessonsController {
         liveLessons: number;
         upcomingLessons: number;
     }>;
+    deleteReview(reviewId: string, body: {
+        studentId: string;
+    }): Promise<void>;
     findOne(id: string): Promise<import("./lesson.entity").Lesson>;
     getToken(id: string, role?: 'host' | 'audience'): Promise<{
         token: string;
@@ -17,11 +20,18 @@ export declare class LessonsController {
         uid: number;
         appId: string;
     }>;
+    getReviews(id: string): Promise<import("./lesson-review.entity").LessonReview[]>;
     create(lessonData: any): Promise<import("./lesson.entity").Lesson>;
     startLesson(id: string): Promise<import("./lesson.entity").Lesson>;
     endLesson(id: string): Promise<import("./lesson.entity").Lesson>;
     joinLesson(id: string): Promise<import("./lesson.entity").Lesson>;
     leaveLesson(id: string): Promise<import("./lesson.entity").Lesson>;
+    createReview(id: string, reviewData: {
+        studentName: string;
+        studentId: string;
+        rating: number;
+        comment: string;
+    }): Promise<import("./lesson-review.entity").LessonReview>;
     update(id: string, lessonData: any): Promise<import("./lesson.entity").Lesson>;
     remove(id: string): Promise<void>;
 }

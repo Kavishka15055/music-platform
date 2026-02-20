@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Lesson = exports.LessonStatus = void 0;
 const typeorm_1 = require("typeorm");
+const lesson_review_entity_1 = require("./lesson-review.entity");
 var LessonStatus;
 (function (LessonStatus) {
     LessonStatus["SCHEDULED"] = "scheduled";
@@ -20,6 +21,7 @@ var LessonStatus;
 let Lesson = class Lesson {
     id;
     title;
+    reviews;
     description;
     scheduledDate;
     duration;
@@ -44,6 +46,10 @@ __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
 ], Lesson.prototype, "title", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => lesson_review_entity_1.LessonReview, (review) => review.lesson),
+    __metadata("design:type", Array)
+], Lesson.prototype, "reviews", void 0);
 __decorate([
     (0, typeorm_1.Column)('text'),
     __metadata("design:type", String)

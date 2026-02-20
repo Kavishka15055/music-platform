@@ -1,3 +1,4 @@
+import { LessonReview } from './lesson-review.entity';
 export declare enum LessonStatus {
     SCHEDULED = "scheduled",
     LIVE = "live",
@@ -6,6 +7,7 @@ export declare enum LessonStatus {
 export declare class Lesson {
     id: string;
     title: string;
+    reviews: LessonReview[];
     description: string;
     scheduledDate: Date;
     duration: number;

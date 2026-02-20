@@ -32,11 +32,17 @@ let LessonsController = class LessonsController {
     getStats() {
         return this.lessonsService.getStats();
     }
+    deleteReview(reviewId, body) {
+        return this.lessonsService.deleteReview(reviewId, body.studentId);
+    }
     findOne(id) {
         return this.lessonsService.findOne(id);
     }
     getToken(id, role = 'audience') {
         return this.lessonsService.getTokenForLesson(id, role);
+    }
+    getReviews(id) {
+        return this.lessonsService.getReviews(id);
     }
     create(lessonData) {
         return this.lessonsService.create(lessonData);
@@ -52,6 +58,9 @@ let LessonsController = class LessonsController {
     }
     leaveLesson(id) {
         return this.lessonsService.leaveLesson(id);
+    }
+    createReview(id, reviewData) {
+        return this.lessonsService.createReview(id, reviewData);
     }
     update(id, lessonData) {
         return this.lessonsService.update(id, lessonData);
@@ -86,6 +95,14 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], LessonsController.prototype, "getStats", null);
 __decorate([
+    (0, common_1.Delete)('reviews/:reviewId'),
+    __param(0, (0, common_1.Param)('reviewId')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], LessonsController.prototype, "deleteReview", null);
+__decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
@@ -100,6 +117,13 @@ __decorate([
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", void 0)
 ], LessonsController.prototype, "getToken", null);
+__decorate([
+    (0, common_1.Get)(':id/reviews'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], LessonsController.prototype, "getReviews", null);
 __decorate([
     (0, common_1.Post)(),
     __param(0, (0, common_1.Body)()),
@@ -135,6 +159,14 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], LessonsController.prototype, "leaveLesson", null);
+__decorate([
+    (0, common_1.Post)(':id/reviews'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], LessonsController.prototype, "createReview", null);
 __decorate([
     (0, common_1.Patch)(':id'),
     __param(0, (0, common_1.Param)('id')),

@@ -10,27 +10,34 @@ import {
   NotFoundException,
   InternalServerErrorException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { RtcTokenBuilder, RtcRole } from 'agora-token';
 import { Lesson, LessonStatus } from './lesson.entity';
+import { LessonReview } from './lesson-review.entity';
 
 @Injectable()
 export class LessonsService {
   constructor(
     @InjectRepository(Lesson)
     private lessonsRepository: Repository<Lesson>,
+    @InjectRepository(LessonReview)
+    private reviewsRepository: Repository<LessonReview>,
     private configService: ConfigService,
   ) {}
 
   /**
-   * Retrieves all lessons from the database.
+   * Retrieves all lessons from the database, including their reviews.
    */
   async findAll(): Promise<Lesson[]> {
     try {
-      return await this.lessonsRepository.find({ order: { scheduledDate: 'DESC' } });
+      return await this.lessonsRepository.find({
+        order: { scheduledDate: 'DESC' },
+        relations: ['reviews'],
+      });
     } catch (error) {
       throw new InternalServerErrorException('Failed to retrieve lessons');
     }
@@ -72,7 +79,10 @@ export class LessonsService {
    */
   async findOne(id: string): Promise<Lesson> {
     try {
-      const lesson = await this.lessonsRepository.findOneBy({ id });
+      const lesson = await this.lessonsRepository.findOne({
+        where: { id },
+        relations: ['reviews'],
+      });
       if (!lesson) {
         throw new NotFoundException(`Lesson with ID "${id}" not found`);
       }
@@ -289,6 +299,63 @@ export class LessonsService {
       return { totalLessons, liveLessons, upcomingLessons };
     } catch (error) {
       throw new InternalServerErrorException('Failed to retrieve lesson statistics');
+    }
+  }
+
+  /**
+   * Creates a review for a lesson.
+   */
+  async createReview(lessonId: string, data: { studentName: string; studentId: string; rating: number; comment: string }): Promise<LessonReview> {
+    try {
+      // Verify lesson exists
+      await this.findOne(lessonId);
+
+      if (!data.rating || data.rating < 1 || data.rating > 5) {
+        throw new BadRequestException('Rating must be between 1 and 5');
+      }
+
+      const review = this.reviewsRepository.create({
+        ...data,
+        lessonId,
+      });
+
+      return await this.reviewsRepository.save(review);
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
+      throw new InternalServerErrorException('Failed to create review');
+    }
+  }
+
+  /**
+   * Gets all reviews for a lesson.
+   */
+  async getReviews(lessonId: string): Promise<LessonReview[]> {
+    try {
+      return await this.reviewsRepository.find({
+        where: { lessonId },
+        order: { createdAt: 'DESC' },
+      });
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to retrieve reviews');
+    }
+  }
+
+  /**
+   * Deletes a review. Only the student who wrote it can delete it.
+   */
+  async deleteReview(reviewId: string, studentId: string): Promise<void> {
+    try {
+      const review = await this.reviewsRepository.findOneBy({ id: reviewId });
+      if (!review) {
+        throw new NotFoundException('Review not found');
+      }
+      if (review.studentId !== studentId) {
+        throw new ForbiddenException('You can only delete your own reviews');
+      }
+      await this.reviewsRepository.delete(reviewId);
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof ForbiddenException) throw error;
+      throw new InternalServerErrorException('Failed to delete review');
     }
   }
 }

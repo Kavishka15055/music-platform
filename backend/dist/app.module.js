@@ -53,6 +53,7 @@ const gallery_module_1 = require("./gallery/gallery.module");
 const gallery_entity_1 = require("./gallery/gallery.entity");
 const lessons_module_1 = require("./lessons/lessons.module");
 const lesson_entity_1 = require("./lessons/lesson.entity");
+const lesson_review_entity_1 = require("./lessons/lesson-review.entity");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -67,7 +68,7 @@ exports.AppModule = AppModule = __decorate([
                 useFactory: (configService) => ({
                     type: 'sqlite',
                     database: 'database.sqlite',
-                    entities: [event_entity_1.Event, gallery_entity_1.Gallery, lesson_entity_1.Lesson],
+                    entities: [event_entity_1.Event, gallery_entity_1.Gallery, lesson_entity_1.Lesson, lesson_review_entity_1.LessonReview],
                     synchronize: true,
                 }),
                 inject: [config_1.ConfigService],

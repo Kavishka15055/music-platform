@@ -1,8 +1,17 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { PlayCircle, Clock, Users, Filter, Music } from 'lucide-react';
+import { PlayCircle, Clock, Users, Filter, Music, Star, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { Link } from '@/i18n/routing';
+
+interface LessonReview {
+  id: string;
+  studentName: string;
+  studentId: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+}
 
 interface Lesson {
   id: string;
@@ -17,6 +26,7 @@ interface Lesson {
   status: 'scheduled' | 'live' | 'ended';
   maxParticipants: number;
   currentParticipants: number;
+  reviews: LessonReview[];
 }
 
 export default function LessonsPage() {
@@ -24,6 +34,10 @@ export default function LessonsPage() {
   const [activeTab, setActiveTab] = useState<'all' | 'live' | 'upcoming'>('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [expandedReviews, setExpandedReviews] = useState<Set<string>>(new Set());
+
+  // Get student identity from sessionStorage
+  const currentStudentId = typeof window !== 'undefined' ? sessionStorage.getItem('studentId') : null;
 
   useEffect(() => {
     fetchLessons();
@@ -67,6 +81,52 @@ export default function LessonsPage() {
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const getAverageRating = (reviews: LessonReview[]) => {
+    if (!reviews || reviews.length === 0) return 0;
+    return reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+  };
+
+  const renderStars = (rating: number, size: number = 14) => {
+    return (
+      <div className="flex items-center gap-0.5">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star
+            key={star}
+            size={size}
+            className={`${
+              star <= Math.round(rating)
+                ? 'text-yellow-400 fill-yellow-400'
+                : 'text-gray-600'
+            }`}
+          />
+        ))}
+      </div>
+    );
+  };
+
+  const toggleReviews = (lessonId: string) => {
+    setExpandedReviews(prev => {
+      const updated = new Set(prev);
+      if (updated.has(lessonId)) updated.delete(lessonId);
+      else updated.add(lessonId);
+      return updated;
+    });
+  };
+
+  const handleDeleteReview = async (reviewId: string) => {
+    if (!currentStudentId) return;
+    try {
+      await fetch(`http://localhost:3005/api/v1/lessons/reviews/${reviewId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ studentId: currentStudentId }),
+      });
+      fetchLessons();
+    } catch (e) {
+      console.error('Failed to delete review:', e);
+    }
   };
 
   const getStatusDisplay = (status: string) => {
@@ -259,6 +319,56 @@ export default function LessonsPage() {
                       </span>
                     )}
                   </div>
+
+                  {/* Reviews Summary */}
+                  {lesson.reviews && lesson.reviews.length > 0 && (
+                    <div className="mt-4 pt-3 border-t border-slate-700">
+                      <button
+                        onClick={() => toggleReviews(lesson.id)}
+                        className="w-full flex items-center justify-between text-sm text-gray-400 hover:text-gray-300 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          {renderStars(getAverageRating(lesson.reviews))}
+                          <span className="text-yellow-400 font-medium">{getAverageRating(lesson.reviews).toFixed(1)}</span>
+                          <span>({lesson.reviews.length} review{lesson.reviews.length !== 1 ? 's' : ''})</span>
+                        </div>
+                        {expandedReviews.has(lesson.id) ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      </button>
+
+                      {/* Expanded Reviews */}
+                      {expandedReviews.has(lesson.id) && (
+                        <div className="mt-3 space-y-3 max-h-48 overflow-y-auto pr-1">
+                          {lesson.reviews.map((review) => (
+                            <div key={review.id} className="bg-slate-900/60 rounded-lg p-3">
+                              <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-white text-xs font-medium">{review.studentName}</span>
+                                  {renderStars(review.rating, 12)}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-gray-500 text-xs">
+                                    {new Date(review.createdAt).toLocaleDateString()}
+                                  </span>
+                                  {currentStudentId === review.studentId && (
+                                    <button
+                                      onClick={() => handleDeleteReview(review.id)}
+                                      className="text-red-400/60 hover:text-red-400 transition-colors"
+                                      title="Delete your review"
+                                    >
+                                      <Trash2 size={12} />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                              {review.comment && (
+                                <p className="text-gray-400 text-xs mt-1">{review.comment}</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
