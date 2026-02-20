@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { useRouter } from '@/i18n/routing';
 import { Mic, MicOff, Video, VideoOff, PhoneOff, Users, Monitor, MonitorOff, Loader2, MessageSquare, Circle, Pause, Square } from 'lucide-react';
 import Chat from '@/components/Chat';
+import DevicePreCheck, { DevicePreferences } from '@/components/DevicePreCheck';
 
 interface LessonData {
   id: string;
@@ -53,6 +54,7 @@ export default function AdminLiveLessonPage() {
   const localVideoRef = useRef<HTMLDivElement>(null);
   const remoteVideoRef = useRef<HTMLDivElement>(null);
   const isInitializedRef = useRef(false);
+  const devicePrefsRef = useRef<DevicePreferences | null>(null);
 
   useEffect(() => {
     if (isInitializedRef.current) return;
@@ -105,10 +107,11 @@ export default function AdminLiveLessonPage() {
     }
   };
 
-  const joinChannel = async () => {
+  const joinChannel = async (prefs?: DevicePreferences) => {
     if (!lesson || !agoraEngine.current) return;
     if (clientRef.current) return;
 
+    if (prefs) devicePrefsRef.current = prefs;
     setIsJoining(true);
     const AgoraRTC = agoraEngine.current;
 
@@ -197,29 +200,42 @@ export default function AdminLiveLessonPage() {
       // 4. Join the channel
       await client.join(appId, channelName, token, uid);
 
-      // 5. Create and publish local tracks
+      // 5. Create and publish local tracks using device preferences
       const tracksToPublish = [];
+      const dp = devicePrefsRef.current;
 
-      try {
-        const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-        localAudioTrackRef.current = audioTrack;
-        tracksToPublish.push(audioTrack);
-        setIsMicOn(true);
-      } catch (e) {
-        console.warn('Microphone not available for admin:', e);
+      if (!dp || dp.micOn) {
+        try {
+          const micConfig: any = {};
+          if (dp?.micDeviceId) micConfig.microphoneId = dp.micDeviceId;
+          const audioTrack = await AgoraRTC.createMicrophoneAudioTrack(micConfig);
+          localAudioTrackRef.current = audioTrack;
+          tracksToPublish.push(audioTrack);
+          setIsMicOn(true);
+        } catch (e) {
+          console.warn('Microphone not available for admin:', e);
+          setIsMicOn(false);
+          setDeviceError(prev => ({ ...prev, audio: 'Microphone Error' }));
+        }
+      } else {
         setIsMicOn(false);
-        setDeviceError(prev => ({ ...prev, audio: 'Microphone Error' }));
       }
 
-      try {
-        const videoTrack = await AgoraRTC.createCameraVideoTrack();
-        localVideoTrackRef.current = videoTrack;
-        tracksToPublish.push(videoTrack);
-        setIsCameraOn(true);
-      } catch (e) {
-        console.warn('Camera not available for admin:', e);
+      if (!dp || dp.cameraOn) {
+        try {
+          const camConfig: any = {};
+          if (dp?.cameraDeviceId) camConfig.cameraId = dp.cameraDeviceId;
+          const videoTrack = await AgoraRTC.createCameraVideoTrack(camConfig);
+          localVideoTrackRef.current = videoTrack;
+          tracksToPublish.push(videoTrack);
+          setIsCameraOn(true);
+        } catch (e) {
+          console.warn('Camera not available for admin:', e);
+          setIsCameraOn(false);
+          setDeviceError(prev => ({ ...prev, video: 'Camera Error / In Use' }));
+        }
+      } else {
         setIsCameraOn(false);
-        setDeviceError(prev => ({ ...prev, video: 'Camera Error / In Use' }));
       }
 
       if (tracksToPublish.length > 0) {
@@ -280,7 +296,9 @@ export default function AdminLiveLessonPage() {
       try {
         const AgoraRTC = agoraEngine.current;
         if (!AgoraRTC) return;
-        const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+        const micConfig: any = {};
+        if (devicePrefsRef.current?.micDeviceId) micConfig.microphoneId = devicePrefsRef.current.micDeviceId;
+        const audioTrack = await AgoraRTC.createMicrophoneAudioTrack(micConfig);
         localAudioTrackRef.current = audioTrack;
         await clientRef.current?.publish(audioTrack);
         setIsMicOn(true);
@@ -302,7 +320,9 @@ export default function AdminLiveLessonPage() {
       try {
         const AgoraRTC = agoraEngine.current;
         if (!AgoraRTC) return;
-        const videoTrack = await AgoraRTC.createCameraVideoTrack();
+        const camConfig: any = {};
+        if (devicePrefsRef.current?.cameraDeviceId) camConfig.cameraId = devicePrefsRef.current.cameraDeviceId;
+        const videoTrack = await AgoraRTC.createCameraVideoTrack(camConfig);
         localVideoTrackRef.current = videoTrack;
         await clientRef.current?.publish(videoTrack);
         setIsCameraOn(true);
@@ -478,45 +498,28 @@ export default function AdminLiveLessonPage() {
         {/* LEFT: Video Grid Area */}
         <div className="flex-1 p-3 overflow-hidden">
           {!isJoined ? (
-            /* Pre-join Screen */
-            <div className="w-full h-full flex items-center justify-center">
-              <div className="p-8 rounded-2xl bg-gray-800/80 backdrop-blur shadow-xl flex flex-col items-center border border-gray-700">
-                <Video size={48} className="text-purple-500 mb-4" />
-                <h3 className="text-xl font-bold text-white mb-2">Ready to go live?</h3>
-                <p className="text-gray-400 mb-6 text-center max-w-xs">
-                  Check your camera and microphone, then start the broadcast.
-                </p>
-
-                {!isAgoraLoaded ? (
-                  <div className="flex items-center gap-2 text-yellow-400">
-                    <Loader2 className="animate-spin" size={20} />
-                    <span>Initializing Video Engine...</span>
-                  </div>
-                ) : (
-                  <button
-                    onClick={joinChannel}
-                    disabled={isJoining}
-                    className={`px-8 py-3 rounded-xl font-bold flex items-center gap-2 transition-all transform hover:scale-105 ${
-                      isJoining
-                        ? 'bg-gray-600 text-gray-300 cursor-not-allowed'
-                        : 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg hover:shadow-purple-500/30'
-                    }`}
-                  >
-                    {isJoining ? (
-                      <>
-                        <Loader2 className="animate-spin" size={20} />
-                        Starting...
-                      </>
-                    ) : (
-                      <>
-                        <Video size={20} />
-                        Start Broadcast
-                      </>
-                    )}
-                  </button>
-                )}
+            /* Pre-join Device Check Screen */
+            isJoining ? (
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="flex flex-col items-center text-gray-400">
+                  <Loader2 className="animate-spin mb-4" size={40} />
+                  <p className="font-medium">Starting broadcast...</p>
+                </div>
               </div>
-            </div>
+            ) : !isAgoraLoaded ? (
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="flex items-center gap-2 text-yellow-400">
+                  <Loader2 className="animate-spin" size={20} />
+                  <span>Initializing Video Engine...</span>
+                </div>
+              </div>
+            ) : (
+              <DevicePreCheck
+                lessonTitle={lesson?.title}
+                onJoin={(prefs) => joinChannel(prefs)}
+                onBack={() => router.push('/admin/lessons')}
+              />
+            )
           ) : (
             /* Two side-by-side frames: Admin (local) + User (remote) */
             <div className={`w-full h-full grid gap-3 ${showChat ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-2'}`}>
