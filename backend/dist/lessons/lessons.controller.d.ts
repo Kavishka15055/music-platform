@@ -10,6 +10,8 @@ export declare class LessonsController {
         liveLessons: number;
         upcomingLessons: number;
     }>;
+    findByTeacher(teacherId: string): Promise<import("./lesson.entity").Lesson[]>;
+    getMyLessons(req: any): Promise<import("./lesson.entity").Lesson[]>;
     deleteReview(reviewId: string, body: {
         studentId: string;
     }): Promise<void>;
@@ -21,7 +23,7 @@ export declare class LessonsController {
         appId: string;
     }>;
     getReviews(id: string): Promise<import("./lesson-review.entity").LessonReview[]>;
-    create(lessonData: any): Promise<import("./lesson.entity").Lesson>;
+    create(lessonData: any, req: any): Promise<import("./lesson.entity").Lesson>;
     startLesson(id: string): Promise<import("./lesson.entity").Lesson>;
     endLesson(id: string): Promise<import("./lesson.entity").Lesson>;
     joinLesson(id: string): Promise<import("./lesson.entity").Lesson>;

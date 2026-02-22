@@ -15,6 +15,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.LessonsController = void 0;
 const common_1 = require("@nestjs/common");
 const lessons_service_1 = require("./lessons.service");
+const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
+const roles_guard_1 = require("../auth/roles.guard");
+const roles_decorator_1 = require("../auth/roles.decorator");
+const user_entity_1 = require("../users/user.entity");
 let LessonsController = class LessonsController {
     lessonsService;
     constructor(lessonsService) {
@@ -32,6 +36,12 @@ let LessonsController = class LessonsController {
     getStats() {
         return this.lessonsService.getStats();
     }
+    findByTeacher(teacherId) {
+        return this.lessonsService.findByTeacher(teacherId);
+    }
+    getMyLessons(req) {
+        return this.lessonsService.findByTeacher(req.user.id);
+    }
     deleteReview(reviewId, body) {
         return this.lessonsService.deleteReview(reviewId, body.studentId);
     }
@@ -44,8 +54,12 @@ let LessonsController = class LessonsController {
     getReviews(id) {
         return this.lessonsService.getReviews(id);
     }
-    create(lessonData) {
-        return this.lessonsService.create(lessonData);
+    create(lessonData, req) {
+        return this.lessonsService.create({
+            ...lessonData,
+            creatorId: req.user.id,
+            instructor: `${req.user.firstName} ${req.user.lastName}`,
+        });
     }
     startLesson(id) {
         return this.lessonsService.startLesson(id);
@@ -95,6 +109,22 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], LessonsController.prototype, "getStats", null);
 __decorate([
+    (0, common_1.Get)('teacher/:teacherId'),
+    __param(0, (0, common_1.Param)('teacherId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], LessonsController.prototype, "findByTeacher", null);
+__decorate([
+    (0, common_1.Get)('my-lessons'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)(user_entity_1.UserRole.TEACHER),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], LessonsController.prototype, "getMyLessons", null);
+__decorate([
     (0, common_1.Delete)('reviews/:reviewId'),
     __param(0, (0, common_1.Param)('reviewId')),
     __param(1, (0, common_1.Body)()),
@@ -126,9 +156,12 @@ __decorate([
 ], LessonsController.prototype, "getReviews", null);
 __decorate([
     (0, common_1.Post)(),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)(user_entity_1.UserRole.TEACHER, user_entity_1.UserRole.ADMIN),
     __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Request)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", void 0)
 ], LessonsController.prototype, "create", null);
 __decorate([

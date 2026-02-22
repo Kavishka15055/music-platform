@@ -30,6 +30,7 @@ export declare class LessonsService {
         liveLessons: number;
         upcomingLessons: number;
     }>;
+    findByTeacher(teacherId: string): Promise<Lesson[]>;
     createReview(lessonId: string, data: {
         studentName: string;
         studentId: string;

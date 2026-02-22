@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Lesson = exports.LessonStatus = void 0;
 const typeorm_1 = require("typeorm");
 const lesson_review_entity_1 = require("./lesson-review.entity");
+const user_entity_1 = require("../users/user.entity");
 var LessonStatus;
 (function (LessonStatus) {
     LessonStatus["SCHEDULED"] = "scheduled";
@@ -33,6 +34,8 @@ let Lesson = class Lesson {
     channelName;
     maxParticipants;
     currentParticipants;
+    creatorId;
+    creator;
     createdAt;
     startedAt;
     endedAt;
@@ -97,6 +100,15 @@ __decorate([
     (0, typeorm_1.Column)({ default: 0 }),
     __metadata("design:type", Number)
 ], Lesson.prototype, "currentParticipants", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Lesson.prototype, "creatorId", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => user_entity_1.User, { nullable: true, onDelete: 'SET NULL' }),
+    (0, typeorm_1.JoinColumn)({ name: 'creatorId' }),
+    __metadata("design:type", user_entity_1.User)
+], Lesson.prototype, "creator", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)

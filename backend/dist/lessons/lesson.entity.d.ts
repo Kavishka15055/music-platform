@@ -1,4 +1,5 @@
 import { LessonReview } from './lesson-review.entity';
+import { User } from '../users/user.entity';
 export declare enum LessonStatus {
     SCHEDULED = "scheduled",
     LIVE = "live",
@@ -19,6 +20,8 @@ export declare class Lesson {
     channelName: string;
     maxParticipants: number;
     currentParticipants: number;
+    creatorId: string;
+    creator: User;
     createdAt: Date;
     startedAt: Date;
     endedAt: Date;
