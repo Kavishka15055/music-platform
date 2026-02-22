@@ -26,6 +26,9 @@ export default function AdminLayout({
           <Link href="/admin/lessons" className="block p-3 hover:bg-slate-800 rounded transition-colors">
             Live Lessons
           </Link>
+          <Link href="/admin/teachers" className="block p-3 hover:bg-slate-800 rounded transition-colors">
+            Teacher Approvals
+          </Link>
           <div className="pt-8 mt-8 border-t border-slate-800">
             <Link href="/" className="block p-3 hover:bg-slate-800 rounded transition-colors text-slate-400">
               Back to Site

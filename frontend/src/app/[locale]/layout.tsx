@@ -5,6 +5,7 @@ import {NextIntlClientProvider} from 'next-intl';
 import {getMessages} from 'next-intl/server';
 import {notFound} from 'next/navigation';
 import {routing} from '@/i18n/routing';
+import { AuthProvider } from '@/components/AuthContext';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -35,7 +36,9 @@ export default async function RootLayout({
     <html lang={locale}>
       <body className={`${inter.className} bg-gray-50 text-gray-900`}>
         <NextIntlClientProvider messages={messages}>
-          {children}
+          <AuthProvider>
+            {children}
+          </AuthProvider>
         </NextIntlClientProvider>
       </body>
     </html>
