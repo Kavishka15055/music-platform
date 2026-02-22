@@ -54,6 +54,9 @@ const gallery_entity_1 = require("./gallery/gallery.entity");
 const lessons_module_1 = require("./lessons/lessons.module");
 const lesson_entity_1 = require("./lessons/lesson.entity");
 const lesson_review_entity_1 = require("./lessons/lesson-review.entity");
+const auth_module_1 = require("./auth/auth.module");
+const users_module_1 = require("./users/users.module");
+const user_entity_1 = require("./users/user.entity");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -68,7 +71,7 @@ exports.AppModule = AppModule = __decorate([
                 useFactory: (configService) => ({
                     type: 'sqlite',
                     database: 'database.sqlite',
-                    entities: [event_entity_1.Event, gallery_entity_1.Gallery, lesson_entity_1.Lesson, lesson_review_entity_1.LessonReview],
+                    entities: [event_entity_1.Event, gallery_entity_1.Gallery, lesson_entity_1.Lesson, lesson_review_entity_1.LessonReview, user_entity_1.User],
                     synchronize: true,
                 }),
                 inject: [config_1.ConfigService],
@@ -76,6 +79,8 @@ exports.AppModule = AppModule = __decorate([
             events_module_1.EventsModule,
             gallery_module_1.GalleryModule,
             lessons_module_1.LessonsModule,
+            auth_module_1.AuthModule,
+            users_module_1.UsersModule,
             nestjs_i18n_1.I18nModule.forRoot({
                 fallbackLanguage: 'en',
                 loaderOptions: {
