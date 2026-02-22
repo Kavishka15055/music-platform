@@ -17,6 +17,9 @@ import { Gallery } from './gallery/gallery.entity';
 import { LessonsModule } from './lessons/lessons.module';
 import { Lesson } from './lessons/lesson.entity';
 import { LessonReview } from './lessons/lesson-review.entity';
+import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
+import { User } from './users/user.entity';
 
 @Module({
   imports: [
@@ -28,7 +31,7 @@ import { LessonReview } from './lessons/lesson-review.entity';
       useFactory: (configService: ConfigService) => ({
         type: 'sqlite',
         database: 'database.sqlite',
-        entities: [Event, Gallery, Lesson, LessonReview],
+        entities: [Event, Gallery, Lesson, LessonReview, User],
         synchronize: true, 
       }),
       inject: [ConfigService],
@@ -36,6 +39,8 @@ import { LessonReview } from './lessons/lesson-review.entity';
     EventsModule,
     GalleryModule,
     LessonsModule,
+    AuthModule,
+    UsersModule,
     I18nModule.forRoot({
       fallbackLanguage: 'en',
       loaderOptions: {
