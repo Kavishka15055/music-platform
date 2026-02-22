@@ -237,6 +237,18 @@ let LessonsService = class LessonsService {
             throw new common_1.InternalServerErrorException('Failed to retrieve lesson statistics');
         }
     }
+    async findByTeacher(teacherId) {
+        try {
+            return await this.lessonsRepository.find({
+                where: { creatorId: teacherId },
+                order: { scheduledDate: 'DESC' },
+                relations: ['reviews'],
+            });
+        }
+        catch (error) {
+            throw new common_1.InternalServerErrorException('Failed to retrieve teacher lessons');
+        }
+    }
     async createReview(lessonId, data) {
         try {
             await this.findOne(lessonId);

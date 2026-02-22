@@ -303,6 +303,21 @@ export class LessonsService {
   }
 
   /**
+   * Finds lessons created by a specific teacher.
+   */
+  async findByTeacher(teacherId: string): Promise<Lesson[]> {
+    try {
+      return await this.lessonsRepository.find({
+        where: { creatorId: teacherId },
+        order: { scheduledDate: 'DESC' },
+        relations: ['reviews'],
+      });
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to retrieve teacher lessons');
+    }
+  }
+
+  /**
    * Creates a review for a lesson.
    */
   async createReview(lessonId: string, data: { studentName: string; studentId: string; rating: number; comment: string }): Promise<LessonReview> {

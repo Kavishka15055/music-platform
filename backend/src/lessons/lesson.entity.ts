@@ -6,8 +6,9 @@
  * Description:
  *   Database entity definition for live video/audio lessons.
  */
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, OneToMany } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 import { LessonReview } from './lesson-review.entity';
+import { User } from '../users/user.entity';
 
 export enum LessonStatus {
   SCHEDULED = 'scheduled',
@@ -61,6 +62,13 @@ export class Lesson {
 
   @Column({ default: 0 })
   currentParticipants: number;
+
+  @Column({ nullable: true })
+  creatorId: string;
+
+  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'creatorId' })
+  creator: User;
 
   @CreateDateColumn()
   createdAt: Date;

@@ -5,8 +5,12 @@
  * Description:
  *   Controller handling HTTP requests for live lesson operations.
  */
-import { Controller, Get, Post, Param, Body, Patch, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body, Patch, Delete, Query, UseGuards, Request } from '@nestjs/common';
 import { LessonsService } from './lessons.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
+import { UserRole } from '../users/user.entity';
 
 @Controller('v1/lessons')
 export class LessonsController {
@@ -42,6 +46,24 @@ export class LessonsController {
   @Get('stats')
   getStats() {
     return this.lessonsService.getStats();
+  }
+
+  /**
+   * Retrieves lessons by a specific teacher.
+   */
+  @Get('teacher/:teacherId')
+  findByTeacher(@Param('teacherId') teacherId: string) {
+    return this.lessonsService.findByTeacher(teacherId);
+  }
+
+  /**
+   * Retrieves lessons for the current authenticated teacher.
+   */
+  @Get('my-lessons')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.TEACHER)
+  getMyLessons(@Request() req: any) {
+    return this.lessonsService.findByTeacher(req.user.id);
   }
 
   /**
@@ -83,11 +105,17 @@ export class LessonsController {
   }
 
   /**
-   * Creates a new lesson.
+   * Creates a new lesson (teacher or admin only).
    */
   @Post()
-  create(@Body() lessonData: any) {
-    return this.lessonsService.create(lessonData);
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.TEACHER, UserRole.ADMIN)
+  create(@Body() lessonData: any, @Request() req: any) {
+    return this.lessonsService.create({
+      ...lessonData,
+      creatorId: req.user.id,
+      instructor: `${req.user.firstName} ${req.user.lastName}`,
+    });
   }
 
   /**

@@ -8,6 +8,36 @@ const api = axios.create({
   timeout: 10000,
 });
 
+// Add auth interceptor
+api.interceptors.request.use((config) => {
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
+});
+
+// Auth API
+export const authApi = {
+  registerStudent: (data: any) => api.post('/v1/auth/register/student', data),
+  registerTeacher: (data: any) => api.post('/v1/auth/register/teacher', data),
+  login: (data: { email: string; password: string }) => api.post('/v1/auth/login', data),
+  getProfile: () => api.get('/v1/auth/profile'),
+};
+
+// Users API
+export const usersApi = {
+  getTeachers: () => api.get('/v1/users/teachers'),
+  getTeacherById: (id: string) => api.get(`/v1/users/teachers/${id}`),
+  getPendingTeachers: () => api.get('/v1/users/pending-teachers'),
+  getPendingCount: () => api.get('/v1/users/pending-teachers/count'),
+  approveTeacher: (id: string) => api.post(`/v1/users/teachers/${id}/approve`),
+  rejectTeacher: (id: string) => api.post(`/v1/users/teachers/${id}/reject`),
+  getMe: () => api.get('/v1/users/me'),
+};
+
 // Events API
 export const eventsApi = {
   getAll: () => api.get('/v1/events'),
@@ -42,6 +72,8 @@ export const lessonsApi = {
   getUpcoming: () => api.get('/v1/lessons/upcoming'),
   getStats: () => api.get('/v1/lessons/stats'),
   getById: (id: string) => api.get(`/v1/lessons/${id}`),
+  getByTeacher: (teacherId: string) => api.get(`/v1/lessons/teacher/${teacherId}`),
+  getMyLessons: () => api.get('/v1/lessons/my-lessons'),
   create: (data: any) => api.post('/v1/lessons', data),
   update: (id: string, data: any) => api.patch(`/v1/lessons/${id}`, data),
   delete: (id: string) => api.delete(`/v1/lessons/${id}`),
